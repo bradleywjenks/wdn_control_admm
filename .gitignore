@@ -1,0 +1,4 @@
+Manifest.toml
+
+# ignore data files
+*.jld2
