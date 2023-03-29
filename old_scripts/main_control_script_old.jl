@@ -28,10 +28,11 @@ begin
 
     if net_name == "bwfl_2022_05/hw"
         data_name = "bwfl_2022_05_hw"
+        network = load_network(net_name, afv_idx=false, dbv_idx=false, pcv_idx=false, bv_open=true)
+    else
+        network = load_network(net_name, afv_idx=false, dbv_idx=false, pcv_idx=false)
+        data_name = "modena"
     end
-
-    # load network properties
-    network = load_network(net_name, afv_idx=false, dbv_idx=false, pcv_idx=false, bv_open=true)
 end
 
 ### setup optimization parameters ###
@@ -39,7 +40,7 @@ begin
     n_v = 3
     n_f = 4
     αmax = 25
-    δmax = 10
+    δmax = 5
     umin = 0.2
     ρ = 50
     scc_time = collect(38:42) # bwfl (peak)
@@ -62,22 +63,28 @@ end
 
 ### load actuator locations from single-objective problem ###
 begin
-    sol_best_azp = load("data/single_objective_results/"*data_name*"_azp_nv_"*string(n_v)*"_nf_"*string(n_f)*".jld2", "sol_best")
-    sol_best_scc = load("data/single_objective_results/"*data_name*"_scc_nv_"*string(n_v)*"_nf_"*string(n_f)*".jld2", "sol_best")
-    z_loc = sol_best_azp.z
+    sol_best_azp = load("data/single_objective_results/"*data_name*"_azp_random_nv_"*string(n_v)*"_nf_"*string(n_f)*".jld2", "sol_best")
+    sol_best_scc = load("data/single_objective_results/"*data_name*"_scc_random_nv_"*string(n_v)*"_nf_"*string(n_f)*".jld2", "sol_best")
+    v_loc = sol_best_azp.v
     y_loc = sol_best_scc.y
 end
 
-### reassign control valve bounds ### 
+### re-assign control valve bounds ### 
 begin
     # pcv actuators
     if n_v > 0
-        opt_params.ηmin[setdiff(1:network.np, z_loc), :] .= 0
-        opt_params.ηmax[setdiff(1:network.np, z_loc), :] .= 0
+        opt_params.ηmin[setdiff(1:network.np, v_loc), :] .= 0
+        opt_params.ηmax[setdiff(1:network.np, v_loc), :] .= 0
     else
         opt_params.ηmin .= 0
         opt_params.ηmax .= 0
     end
+
+    # if data_name == "modena"
+    #     opt_params.ηmin .= 0
+    # elseif data_name == "bwfl_2022_05_hw"
+    #     opt_params.ηmax .= 0
+    # end
 
     # afv actuators
     if n_f > 0 
@@ -104,10 +111,11 @@ begin
     nt = network.nt
 
     # initialise variables
-    xk = vcat(q_init, h_init, zeros(np, nt), zeros(nn, nt))
+    xk_0 = vcat(q_init, h_init, zeros(np, nt), zeros(nn, nt))
+    xk = xk_0
     zk = h_init
     λk = zeros(nn, nt)
-    γk = 2 # regularisation term
+    γk = 1 # regularisation term
     γ0 = 0 # regularisation term for first admm iteration
 
     # ADMM parameters
@@ -125,7 +133,7 @@ end
 
 ### main ADMM loop ###
 begin
-    cpu_time = @elapsed begin
+    # cpu_time = @elapsed begin
         for k ∈ collect(1:kmax)
 
             ### update (in parallel) primal variable xk_t ###
@@ -138,7 +146,7 @@ begin
             Threads.@threads for t ∈ collect(1:nt)
             # for t ∈ collect(1:nt)
                 # @show "" t Threads.threadid()
-                xk[:, t], obj_hist[k, t], status = primal_update(xk[:, t], zk[:, t], λk[:, t], network, opt_params, γ, t, scc_time, z_loc, y_loc; ρ=ρ, umin=umin, δmax = δmax)
+                xk[:, t], obj_hist[k, t], status = primal_update_threaded(xk[:, t], zk[:, t], λk[:, t], network, opt_params, γ, t, scc_time, v_loc, y_loc; ρ=ρ, umin=umin, δmax = δmax)
                 if status != 0 
                     error("IPOPT did not converge at time step t = $t.")
                 end
@@ -172,7 +180,7 @@ begin
 
         end
     end
-end
+# end
 
 
 ### save data ###
@@ -193,12 +201,13 @@ begin
     ### plot residuals ###
     plot_p_residual = plot()
     plot_p_residual = plot!(collect(1:length(p_residual)), p_residual, c=:blue, markerstrokecolor=:blue, seriestype=:scatter, markersize=4)
-    plot_p_residual = plot!(xlabel="", ylabel="Primal residual [m]", ylims=(0, 10), xlims=(0, 25), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, legend=:none, bottom_margin=2*Plots.mm, size = (425, 500))
+    plot_p_residual = plot!(xlabel="", ylabel="Primal residual [m]", ylims=(0, 10), xlims=(0, 100), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, legend=:none, bottom_margin=2*Plots.mm, size = (425, 500))
     plot_d_residual = plot()
     plot_d_residual = plot!(collect(1:length(d_residual)), d_residual, c=:blue, markerstrokecolor=:blue, seriestype=:scatter, markersize=4)
-    plot_d_residual = plot!(xlabel="ADMM iteration", ylabel="Dual residual [m]", ylims=(0, 50), xlims=(0, 25), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, legend=:none, size = (425, 500))
+    plot_d_residual = plot!(xlabel="ADMM iteration", ylabel="Dual residual [m]", ylims=(0, 40), xlims=(0, 100), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, legend=:none, size = (425, 500))
     plot(plot_p_residual, plot_d_residual, layout = (2, 1))
 end
+
 
 ### plot objective function (time series) ### 
 begin
@@ -222,14 +231,20 @@ begin
     plot_azp = plot()
     plot_azp = plot!(collect(1:nt), f_azp, c=:blue, seriestype=:line, linewidth=1.5, linestyle=:dash, label="without PV")
     plot_azp = plot!(collect(1:nt), f_azp_pv, c=:blue, seriestype=:line, linewidth=1.5, label="with PV")
-    plot_azp = vspan!([38, 42]; c=:black, alpha = 0.1, label = "SCC period")
-    plot_azp = plot!(xlabel="", ylabel="AZP [m]", ylims=(30, 55), xlims=(0, 96), xticks=(0:24:96), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, legendborder=:false, legend=:best, bottom_margin=2*Plots.mm, size = (425, 500))
+    plot_azp = vspan!([38:42]; c=:black, alpha = 0.1, label = "SCC period")
+    # plot_azp = plot!(xlabel="", ylabel="AZP [m]",  xlims=(0, 24), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, legendborder=:false, legend=:best, bottom_margin=2*Plots.mm, size = (425, 500))
+    plot_azp = plot!(xlabel="", ylabel="AZP [m]",  xlims=(0, 96), xticks=(0:24:96), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, legendborder=:false, legend=:best, bottom_margin=2*Plots.mm, size = (425, 500))
     plot_scc = plot()
     plot_scc = plot!(collect(1:nt), f_scc, c=:blue, seriestype=:line, linewidth=1.5, linestyle=:dash, label="without PV")
     plot_scc = plot!(collect(1:nt), f_scc_pv, c=:blue, seriestype=:line, linewidth=1.5, label="with PV")
-    plot_scc = vspan!([38, 42]; c=:black, alpha = 0.1, label = "SCC period")
-    plot_scc = plot!(xlabel="Time step", ylabel=L"SCC $[\%]$", ylims=(0, 50),xlims=(0, 96), xticks=(0:24:96), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, legend=:none, size=(425, 500))
+    plot_scc = vspan!([38:42]; c=:black, alpha = 0.1, label = "SCC period")
+    # plot_scc = plot!(xlabel="Time step", ylabel=L"SCC $[\%]$", xlims=(0, 24), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, legend=:none, size=(425, 500))
+    plot_scc = plot!(xlabel="Time step", ylabel=L"SCC $[\%]$", xlims=(0, 96), xticks=(0:24:96), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, legend=:none, size=(425, 500))
     plot(plot_azp, plot_scc, layout=(2, 1))
+
+    # ylims=(30, 55)
+    # ylims=(0, 50)
+    # xticks=(0:24:96)
 end
 
 
@@ -256,11 +271,13 @@ begin
     plot_npv_0 = plot()
     plot_npv_0 = plot!(collect(1:nt), pv_0_mean, c=:blue, linestyle=:dash, linewidth=1.5, label="without PV")
     plot_npv_0 = plot!(collect(1:nt), pv_0_min, fillrange = pv_0_max, fillalpha = 0.15, c=:blue, linealpha = 0, label="")
-    plot_npv_0 = plot!(xlabel="", ylabel="Nodal PV [m]", ylims=(-20, 30), xlims=(0, 96), xticks=(0:24:96), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, size=(425, 500), legend=:topright)
+    # plot_npv_0 = plot!(xlabel="", ylabel="Nodal PV [m]", xlims=(0, 24), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, size=(425, 500), legend=:topright)
+    plot_npv_0 = plot!(xlabel="", ylabel="Nodal PV [m]", xlims=(0, 96), xticks=(0:24:96), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, size=(425, 500), legend=:topright)
     plot_npv_k = plot()
     plot_np_k = plot!(collect(1:nt), pv_k_mean, c=:blue, linestyle=:solid, linewidth=1.5, label="with PV")
     plot_npv_k = plot!(collect(1:nt), pv_k_min, fillrange = pv_k_max, fillalpha = 0.15, c=:blue, linealpha = 0, label="")
-    plot_npv_k = plot!(xlabel="Time step", ylabel="Nodal PV [m]", ylims=(-20, 30), xlims=(0, 96), xticks=(0:24:96), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, size=(425, 500), legend=:topright)
+    # plot_npv_k = plot!(xlabel="Time step", ylabel="Nodal PV [m]", xlims=(0, 24), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, size=(425, 500), legend=:topright)
+    plot_npv_k = plot!(xlabel="Time step", ylabel="Nodal PV [m]", xlims=(0, 96), xticks=(0:24:96), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, size=(425, 500), legend=:topright)
     plot(plot_npv_0, plot_npv_k, layout=(2, 1))
 
 end
@@ -294,7 +311,7 @@ begin
         npv_0[i] = maximum(hk_0[i, :]) - minimum(hk_0[i, :])
         npv_k[i] = maximum(hk[i, :]) - minimum(hk[i, :])
     end
-    network.pcv_loc = z_loc
+    network.pcv_loc = v_loc
     network.afv_loc = y_loc
     node_key = "pressure variation"
     node_values = vcat(npv_k, repeat([0.0], network.n0))
@@ -305,3 +322,18 @@ begin
     plot_network_layout(network, pipes=false, reservoirs=true, pcvs=true, dbvs=false, afvs=true)
 
 end
+
+
+### plot data at network links
+begin
+    time_step = 39
+    network.pcv_loc = v_loc
+    network.afv_loc = y_loc
+
+    data = qk[:, time_step]
+
+    edge_key = "flow"
+    edge_values = data
+    plot_network_edges(network, edge_values=edge_values, edge_key=edge_key, clims=(0, 5))
+    plot_network_layout(network, pipes=false, reservoirs=true, pcvs=true, dbvs=false, afvs=true)
+end 
