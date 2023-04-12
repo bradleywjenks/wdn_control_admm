@@ -1,0 +1,38 @@
+% Recommended preamble:
+\begin{tikzpicture}
+\begin{axis}[xmode={log}, xlabel={$\gamma$}, ylabel={Iterations}, ymin={0}, ymax={200}]
+    \addplot+[style={dashed, very thick}, mark={square}, mark size={2.5pt}, mark options={solid, fill opacity=0.25}, color={rgb,1:red,0.851;green,0.373;blue,0.008}]
+        coordinates {
+
+            (0.010000000000000002,59)
+            (0.1,37)
+            (1.0,26)
+            (10.0,26)
+            (100.0,26)
+        }
+        ;
+    \addlegendentry {$\delta_1$}
+    \addplot+[style={dashed, very thick}, mark={diamond}, mark size={4pt}, mark options={solid, fill opacity=0.25}, color={rgb,1:red,0.106;green,0.62;blue,0.467}]
+        coordinates {
+            (0.001,143)
+            (0.010000000000000002,36)
+            (0.1,22)
+            (1.0,21)
+            (10.0,21)
+            (100.0,21)
+        }
+        ;
+    \addlegendentry {$\delta_2$}
+    \addplot+[style={dashed, very thick}, mark={o}, mark size={3pt}, mark options={solid, fill opacity=0.25}, color={rgb,1:red,0.459;green,0.439;blue,0.702}]
+        coordinates {
+            (0.001,150)
+            (0.010000000000000002,64)
+            (0.1,21)
+            (1.0,20)
+            (10.0,20)
+            (100.0,20)
+        }
+        ;
+    \addlegendentry {$\delta_3$}
+\end{axis}
+\end{tikzpicture}

@@ -1,0 +1,145 @@
+% Recommended preamble:
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size={2 by 1}, horizontal sep={1.5cm}}]
+    \nextgroupplot[xmode={log}, xlabel={$\gamma$}, ylabel={$f$}, ymin={3220}, ymax={3360}, ytick={{3220, 3240, ..., 3360}}, tick style={black}]
+    \addplot+[style={solid, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.894;green,0.102;blue,0.11}]
+        coordinates {
+            (0.001,3228.051699770535)
+            (0.010000000000000002,3229.9493036373196)
+            (0.1,3232.774458261956)
+            (1.0,3234.323183123622)
+            (10.0,3235.244577599325)
+            (100.0,3235.436328038422)
+        }
+        ;
+    \addplot+[style={dashed, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.894;green,0.102;blue,0.11}]
+        coordinates {
+            (0.001,3229.3123944033778)
+            (0.010000000000000002,3233.4772208678555)
+            (0.1,3243.174168271701)
+            (1.0,3247.2201814586697)
+            (10.0,3249.735380248823)
+            (100.0,3250.17805542052)
+        }
+        ;
+    \addplot+[style={dotted, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.894;green,0.102;blue,0.11}]
+        coordinates {
+
+            (0.010000000000000002,3242.2325436821575)
+            (0.1,3255.8150116548823)
+            (1.0,3270.569430293482)
+            (10.0,3274.3897761025087)
+            (100.0,3275.271809074591)
+        }
+        ;
+    \addplot+[style={solid, very thick}, mark={square}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.216;green,0.494;blue,0.722}]
+        coordinates {
+            (0.001,3230.030309326251)
+            (0.010000000000000002,3231.3186016882605)
+            (0.1,3236.0912933141312)
+            (1.0,3238.2873956356802)
+            (10.0,3239.349579091478)
+            (100.0,3239.563271717281)
+        }
+        ;
+    \addplot+[style={dashed, very thick}, mark={square}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.216;green,0.494;blue,0.722}]
+        coordinates {
+            (0.001,3240.479941582658)
+            (0.010000000000000002,3241.527670689179)
+            (0.1,3252.269736602316)
+            (1.0,3275.4021018838375)
+            (10.0,3280.453419834943)
+            (100.0,3281.1406313942884)
+        }
+        ;
+    \addplot+[style={dotted, very thick}, mark={square}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.216;green,0.494;blue,0.722}]
+        coordinates {
+            (0.001,3283.2951078128376)
+            (0.010000000000000002,3285.7121622138093)
+            (0.1,3302.855921343974)
+            (1.0,3322.58365427763)
+            (10.0,3338.725519393121)
+            (100.0,3340.793215822122)
+        }
+        ;
+    \draw[style={solid, very thick}, color={black}] ({rel axis cs:1,0}|-{axis cs:0,3228.334315010967}) -- ({rel axis cs:0,0}|-{axis cs:0,3228.334315010967});
+    \nextgroupplot[xmode={log}, xlabel={$\gamma$}, ylabel={Iterations}, ymin={0}, ymax={500}, tick style={black}, legend pos={outer north east}]
+    \addplot+[style={solid, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.894;green,0.102;blue,0.11}]
+        coordinates {
+            (0.001,89)
+            (0.010000000000000002,41)
+            (0.1,22)
+            (1.0,21)
+            (10.0,21)
+            (100.0,21)
+        }
+        ;
+    \addlegendentry {$\delta_1$ (P1)}
+    \addplot+[style={dashed, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.894;green,0.102;blue,0.11}]
+        coordinates {
+            (0.001,116)
+            (0.010000000000000002,58)
+            (0.1,22)
+            (1.0,22)
+            (10.0,22)
+            (100.0,22)
+        }
+        ;
+    \addlegendentry {$\delta_2$ (P1)}
+    \addplot+[style={dotted, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.894;green,0.102;blue,0.11}]
+        coordinates {
+
+            (0.010000000000000002,41)
+            (0.1,32)
+            (1.0,21)
+            (10.0,21)
+            (100.0,21)
+        }
+        ;
+    \addlegendentry {$\delta_3$ (P1)}
+    \addplot+[style={solid, very thick}, mark={square}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.216;green,0.494;blue,0.722}]
+        coordinates {
+            (0.001,149)
+            (0.010000000000000002,80)
+            (0.1,29)
+            (1.0,26)
+            (10.0,25)
+            (100.0,25)
+        }
+        ;
+    \addlegendentry {$\delta_1$ (P2)}
+    \addplot+[style={dashed, very thick}, mark={square}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.216;green,0.494;blue,0.722}]
+        coordinates {
+            (0.001,298)
+            (0.010000000000000002,72)
+            (0.1,41)
+            (1.0,20)
+            (10.0,20)
+            (100.0,19)
+        }
+        ;
+    \addlegendentry {$\delta_2$ (P2)}
+    \addplot+[style={dotted, very thick}, mark={square}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.216;green,0.494;blue,0.722}]
+        coordinates {
+            (0.001,430)
+            (0.010000000000000002,90)
+            (0.1,39)
+            (1.0,29)
+            (10.0,30)
+            (100.0,30)
+        }
+        ;
+    \addlegendentry {$\delta_3$ (P2)}
+    \addplot+[style={solid, very thick}, mark={none}, color={black}]
+        coordinates {
+            (0.001,-1)
+            (0.010000000000000002,-1)
+            (0.1,-1)
+            (1.0,-1)
+            (10.0,-1)
+            (100.0,-1)
+        }
+        ;
+    \addlegendentry {$\delta_{\infty}$}
+\end{groupplot}
+\end{tikzpicture}

@@ -15,15 +15,15 @@ include("src/admm_functions.jl")
 
 ### input problem parameters ###
 begin
-    # net_name = "bwfl_2022_05_hw"
+    net_name = "bwfl_2022_05_hw"
     # net_name = "modena"
     # net_name = "L_town"
-    net_name = "bwkw_mod"
+    # net_name = "bwkw_mod"
 
     # make_data = true
     make_data = false
-    # bv_open = true
-    bv_open = false
+    bv_open = true
+    # bv_open = false
 
     n_v = 3
     n_f = 4
@@ -35,8 +35,8 @@ begin
     obj_type = "azp-scc" # obj_type = "pv"; obj_type = "azp-scc"
     pv_type = "variability" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
 
-    # scc_time = collect(38:42) # bwfl (peak)
-    scc_time = collect(28:32) # bwkw (peak)
+    scc_time = collect(38:42) # bwfl (peak)
+    # scc_time = collect(28:32) # bwkw (peak)
     # scc_time = collect(12:16) # bwfl (min)
     # scc_time = collect(7:8) # modena (peak)
     # scc_time = collect(3:4) # modena (min)
@@ -77,7 +77,6 @@ end
 
 ### load problem data ###
 begin
-    # net_name = "bwfl_2022_05_hw"
     data = load("data/problem_data/"*net_name*"_nv_"*string(n_v)*"_nf_"*string(n_f)*".jld2")
 end
 
@@ -132,8 +131,8 @@ begin
             else
                 γ = γk
             end
-            # Threads.@threads for t ∈ collect(1:nt)
-            for t ∈ collect(1:nt)
+            Threads.@threads for t ∈ collect(1:nt)
+            # for t ∈ collect(1:nt)
                 xk[:, t], obj_hist[k, t], status = primal_update(xk_0[:, t], zk[:, t], λk[:, t], data, γ, t, scc_time; ρ=ρ, umin=umin, δmax=δmax)
                 if status != 0
                     error("IPOPT did not converge at time step t = $t.")
@@ -167,8 +166,8 @@ begin
             ### ADMM status statement ###
             if p_residual[k] ≤ ϵ && d_residual[k] ≤ ϵ
                 iter_f = k
-                break
                 @info "ADMM successful at iteration $k of $kmax. Primal residual = $p_residual_k, Dual residual = $d_residual_k. Algorithm terminated."
+                break
             else
                 @info "ADMM unsuccessful at iteration $k of $kmax. Primal residual = $p_residual_k, Dual residual = $d_residual_k. Moving to next iteration."
             end
@@ -180,12 +179,12 @@ end
 
 ### save data ###
 begin
-    @save "data/admm_results/"*net_name*"_pv_type_"*pv_type*"_delta_"*string(δmax)*"_gamma_"*string(γk)*"_threaded.jld2" xk x_hist obj_hist iter_f p_residual d_residual cpu_time
+    @save "data/admm_results/"*net_name*"_"*pv_type*"_delta_"*string(δmax)*"_gamma_"*string(γk)*"_threaded.jld2" xk x_hist obj_hist iter_f p_residual d_residual cpu_time
 end
 
 ### load data ###
 begin
-    @load "data/admm_results/"*net_name*"_pv_type_"*pv_type*"_delta_"*string(δmax)*"_gamma_"*string(γk)*"_threaded.jld2"  xk x_hist obj_hist iter_f p_residual d_residual cpu_time
+    @load "data/admm_results/"*net_name*"_"*pv_type*"_delta_"*string(δmax)*"_gamma_"*string(γk)*"_threaded.jld2"  xk x_hist obj_hist iter_f p_residual d_residual cpu_time
 end
 
 ### plotting code ###

@@ -1,0 +1,38 @@
+% Recommended preamble:
+\begin{tikzpicture}
+\begin{axis}[xmode={log}, xlabel={$\gamma$}, ylabel={$f$}, ymin={3220}, ymax={3290}, ytick={{3220, 3230, ..., 3290}}, legend pos={north west}]
+    \addplot+[style={solid, very thick}, mark={square}, mark size={2.5pt}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.8706;green,0.5608;blue,0.0196}]
+        coordinates {
+
+            (0.010000000000000002,3242.2325436821575)
+            (0.1,3255.8150116548823)
+            (1.0,3270.569430293482)
+            (10.0,3274.3897761025087)
+            (100.0,3275.271809074591)
+        }
+        ;
+    \addlegendentry {$\delta_1$}
+    \addplot+[style={solid, very thick}, mark={diamond}, mark size={4pt}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.0078;green,0.6196;blue,0.451}]
+        coordinates {
+            (0.001,3229.3123944033778)
+            (0.010000000000000002,3233.4772208678555)
+            (0.1,3243.174168271701)
+            (1.0,3247.2201814586697)
+            (10.0,3249.735380248823)
+            (100.0,3250.17805542052)
+        }
+        ;
+    \addlegendentry {$\delta_2$}
+    \addplot+[style={solid, very thick}, mark={o}, mark size={3pt}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.0039;green,0.451;blue,0.698}]
+        coordinates {
+            (0.001,3228.051699770535)
+            (0.010000000000000002,3229.9493036373196)
+            (0.1,3232.774458261956)
+            (1.0,3234.323183123622)
+            (10.0,3235.244577599325)
+            (100.0,3235.436328038422)
+        }
+        ;
+    \addlegendentry {$\delta_3$}
+\end{axis}
+\end{tikzpicture}

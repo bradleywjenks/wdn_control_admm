@@ -9,6 +9,7 @@ using Plots
 
 # OPENBLAS_NUM_THREADS = 1
 addprocs(7)
+# addprocs(3)
 
 ### instantiate and precompile environment
 @everywhere begin
@@ -31,26 +32,27 @@ end
 @everywhere begin
     # net_name = "bwfl_2022_05_hw"
     # net_name = "modena"
-    # net_name = "L_town"
-    net_name = "bwkw_mod"
+    net_name = "L_town"
+    # net_name = "bwkw_mod"
 
     # make_data = true
     make_data = false
-    bv_open = true
-    # bv_open = false
+    # bv_open = true
+    bv_open = false
 
     n_v = 3
     n_f = 4
     αmax = 25
-    δmax = 20
+    δmax = 10
     umin = 0.2
+    pmin = 15
     # pmin = 10 # for bwkw network
     ρ = 50
     obj_type = "azp-scc" # obj_type = "pv"; obj_type = "azp-scc"
-    pv_type = "variability" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
+    pv_type = "range" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
 
-    # scc_time = collect(38:42) # bwfl (peak)
-    scc_time = collect(28:32) # bwkw (peak)
+    scc_time = collect(38:42) # bwfl (peak)
+    # scc_time = collect(28:32) # bwkw (peak)
     # scc_time = collect(12:16) # bwfl (min)
     # scc_time = collect(7:8) # modena (peak)
     # scc_time = collect(3:4) # modena (min)
@@ -91,7 +93,6 @@ end
 
 ### load problem data for distributed.jl version ###
 @everywhere begin
-    # net_name = "bwfl_2022_05_hw"
     data = load("data/problem_data/"*net_name*"_nv_"*string(n_v)*"_nf_"*string(n_f)*".jld2")
 end
 
@@ -115,12 +116,12 @@ begin
     xk_0 = SharedArray(vcat(data["q_init"], data["h_init"], zeros(np, nt), zeros(nn, nt)))
     zk = SharedArray(data["h_init"])
     λk = SharedArray(zeros(data["nn"], data["nt"]))
-    @everywhere γk = 1 # regularisation term
+    @everywhere γk = 0.01 # regularisation term
     @everywhere γ0 = 0 # regularisation term for first admm iteration
 
     # ADMM parameters
-    kmax = 100
-    ϵ = 2.5e-1
+    kmax = 1000
+    ϵ = 2e-1
     obj_hist = SharedArray(zeros(kmax, nt))
     xk = SharedArray(zeros(np+nn+np+nn, nt))
     z_hist = Array{Union{Nothing, Float64}}(nothing, nn*nt, kmax+1)
@@ -182,30 +183,73 @@ begin
                 @info "ADMM successful at iteration $k of $kmax. Primal residual = $p_residual_k, Dual residual = $d_residual_k. Algorithm terminated."
                 break
             else
+                iter_f = k
                 @info "ADMM unsuccessful at iteration $k of $kmax. Primal residual = $p_residual_k, Dual residual = $d_residual_k. Moving to next iteration."
             end
 
         end
     end
+
+    objk = obj_hist[iter_f, :]
+    xk_0 = reshape(x_hist[:, 2], 2*np+2*nn, nt)
 end
 
 
+
+### compute objective function (time series) ### 
+begin
+    if iter_f == kmax
+        f_val = Inf
+        f_azp = Inf
+        f_azp_pv = Inf
+        f_scc = Inf
+        f_scc_pv = Inf
+        cpu_time = Inf
+    else
+        qk_0 = xk_0[1:np, :]
+        qk = xk[1:np, :]
+        hk_0 = xk_0[np+1:np+nn, :]
+        hk = xk[np+1:np+nn, :]
+        A = 1 ./ ((π/4).*data["D"].^2)
+        f_val = zeros(nt)
+        f_azp = zeros(nt)
+        f_azp_pv = zeros(nt)
+        f_scc = zeros(nt)
+        f_scc_pv = zeros(nt)
+        for k ∈ 1:nt
+            f_azp[k] = sum(data["azp_weights"][i]*(hk_0[i, k] - data["elev"][i]) for i ∈ 1:nn)
+            f_azp_pv[k] = sum(data["azp_weights"][i]*(hk[i, k] - data["elev"][i]) for i ∈ 1:nn)
+            f_scc[k] = sum(data["scc_weights"][j]*((1+exp(-ρ*((qk_0[j, k]/1000*A[j]) - umin)))^-1 + (1+exp(-ρ*(-(qk_0[j, k]/1000*A[j]) - umin)))^-1) for j ∈ 1:np)
+            f_scc_pv[k] = sum(data["scc_weights"][j]*((1+exp(-ρ*((qk[j, k]/1000*A[j]) - umin)))^-1 + (1+exp(-ρ*(-(qk[j, k]/1000*A[j]) - umin)))^-1) for j ∈ 1:np)
+            if k ∈ scc_time
+                f_val[k] = f_scc_pv[k]*-1
+            else
+                f_val[k] = f_azp_pv[k]
+            end
+        end
+    end
+end
+
+### load data ###
+# begin
+#     @load "data/admm_results/"*net_name*"_"*pv_type*"_delta_"*string(δmax)*"_gamma_"*string(γk)*"_distributed.jld2"  xk x_hist obj_hist iter_f p_residual d_residual cpu_time
+# end
+
 ### save data ###
 begin
-    @save "data/admm_results/"*net_name*"_pv_type_"*pv_type*"_delta_"*string(δmax)*"_gamma_"*string(γk)*"_distributed.jld2" xk x_hist obj_hist iter_f p_residual d_residual cpu_time
+    @save "data/admm_results/"*net_name*"_"*pv_type*"_delta_"*string(δmax)*"_gamma_"*string(γk)*"_distributed.jld2" nt np nn xk xk_0 objk p_residual d_residual cpu_time f_azp f_azp_pv f_scc f_scc_pv f_val 
 end
 
 ### load data ###
 begin
-    @load "data/admm_results/"*net_name*"_pv_type_"*pv_type*"_delta_"*string(δmax)*"_gamma_"*string(γk)*"_distributed.jld2"  xk x_hist obj_hist iter_f p_residual d_residual cpu_time
+    @load "data/admm_results/"*net_name*"_"*pv_type*"_delta_"*string(δmax)*"_gamma_"*string(γk)*"_distributed.jld2"  nt np nn xk xk_0 objk p_residual d_residual cpu_time f_azp f_azp_pv f_scc f_scc_pv f_val 
 end
 
-### plotting code ###
+
+### plot residuals ###
 begin
     # PyPlot.rc("text", usetex=true)
     # PyPlot.rc("font", family="CMU Serif")
-
-    ### plot residuals ###
     plot_p_residual = plot()
     plot_p_residual = plot!(collect(1:length(p_residual)), p_residual, c=:red3, markerstrokewidth=0, markeralpha=1, seriestype=:scatter, markersize=5)
     plot_p_residual = plot!(xlabel="", ylabel="Primal residual [m]", ylims=(0, 10), xlims=(0, 100), xtickfontsize=14, ytickfontsize=14, xguidefontsize=16, yguidefontsize=16, legendfont=14, legend=:none, fontfamily="Computer Modern", bottom_margin=4*Plots.mm, size=(600, 600))
@@ -218,23 +262,6 @@ end
 
 ### plot objective function (time series) ### 
 begin
-    xk_0 = reshape(x_hist[:, 2], 2*np+2*nn, nt)
-    qk_0 = xk_0[1:np, :]
-    qk = xk[1:np, :]
-    hk_0 = xk_0[np+1:np+nn, :]
-    hk = xk[np+1:np+nn, :]
-    A = 1 ./ ((π/4).*data["D"].^2)
-    f_azp = zeros(nt)
-    f_azp_pv = zeros(nt)
-    f_scc = zeros(nt)
-    f_scc_pv = zeros(nt)
-    for k ∈ 1:nt
-        f_azp[k] = sum(data["azp_weights"][i]*(hk_0[i, k] - data["elev"][i]) for i ∈ 1:nn)
-        f_azp_pv[k] = sum(data["azp_weights"][i]*(hk[i, k] - data["elev"][i]) for i ∈ 1:nn)
-        f_scc[k] = sum(data["scc_weights"][j]*((1+exp(-ρ*((qk_0[j, k]/1000*A[j]) - umin)))^-1 + (1+exp(-ρ*(-(qk_0[j, k]/1000*A[j]) - umin)))^-1) for j ∈ 1:np)
-        f_scc_pv[k] = sum(data["scc_weights"][j]*((1+exp(-ρ*((qk[j, k]/1000*A[j]) - umin)))^-1 + (1+exp(-ρ*(-(qk[j, k]/1000*A[j]) - umin)))^-1) for j ∈ 1:np)
-    end
-
     plot_azp = plot()
     plot_azp = plot!(collect(1:nt), f_azp_pv, c=:red3, seriestype=:line, linewidth=2, label="with PV")
     plot_azp = plot!(collect(1:nt), f_azp, c=:red3, seriestype=:line, linewidth=2, linestyle=:dash, label="without PV")
@@ -254,78 +281,6 @@ begin
     # xticks=(0:24:96)
     # size=(425, 500)
 end
-
-
-
-### pressure variation plot (cdf) ###
-begin
-    pv_0 = zeros(nn)
-    pv_k = zeros(nn)
-    if pv_type == "variation"
-        pv_0 = [maximum([abs(hk_0[i, k] - hk_0[i, k-1]) for k ∈ collect(2:nt)]) for i ∈ collect(1:nn)]
-        pv_k = [maximum([abs(hk[i, k] - hk[i, k-1]) for k ∈ collect(2:nt)]) for i ∈ collect(1:nn)]
-    elseif pv_type == "variability"
-        pv_0 = [sqrt(sum((hk_0[i, k] - hk_0[i, k-1])^2 for k ∈ collect(2:nt))) for i ∈ collect(1:nn)]
-        pv_k = [sqrt(sum((hk[i, k] - hk[i, k-1])^2 for k ∈ collect(2:nt))) for i ∈ collect(1:nn)]
-    elseif pv_type == "range"
-        pv_0 = [maximum(hk_0[i, :]) - minimum(hk_0[i, :]) for i ∈ collect(1:nn)]
-        pv_k = [maximum(hk[i, :]) - minimum(hk[i, :]) for i ∈ collect(1:nn)]
-    end
-
-    pv_0_cdf = sort(vec(pv_0))
-    pv_k_cdf = sort(vec(pv_k))
-    x = collect(1:nn)./(nn)
-
-    # plotting code
-    plot_cdf = plot()
-    plot_cdf = plot!(pv_k_cdf, x, seriestype=:line, c=:red3, linewidth=2, linestyle=:solid, label="with PV")
-    plot_cdf = plot!(pv_0_cdf, x, seriestype=:line, c=:red3, linewidth=2, linestyle=:dash, label="without PV")
-    plot_cdf = plot!(xlabel="Nodal pressure variation [m]", ylabel="Cumulative probability", yticks=(0:0.2:1), xtickfontsize=14, ytickfontsize=14, xguidefontsize=16, yguidefontsize=16, legendfont=14, legend=:bottomright, fontfamily="Computer Modern", size=(550, 400))
-    if pv_type == "variation"
-        plot_cdf = plot!(xlabel="Maximum pressure variation [m]")
-    elseif pv_type == "variability"
-        plot_cdf = plot!(xlabel="Pressure variability [m]")
-    elseif pv_type == "range"
-        plot_cdf = plot!(xlabel="Pressure range [m]")
-    end
-    # size=(400, 300)
-end
-
-
-
-### nodal pressure variation (time series) ###
-# begin
-#     pv_0 = zeros(nn, nt)
-#     pv_k = zeros(nn, nt)
-#     pv_0[:, 1] .= NaN
-#     pv_k[:, 1] .= NaN
-#     for i ∈ collect(2:nt)
-#         pv_0[:, i] = hk_0[:, i] - hk_0[:, i-1]
-#         pv_k[:, i] = hk[:, i] - hk[:, i-1]
-#     end
-
-#     pv_0_mean = vec(mean(pv_0, dims=1))
-#     pv_0_min = vec(minimum(pv_0, dims=1))
-#     pv_0_max = vec(maximum(pv_0, dims=1))
-
-#     pv_k_mean = vec(mean(pv_k, dims=1))
-#     pv_k_min = vec(minimum(pv_k, dims=1))
-#     pv_k_max = vec(maximum(pv_k, dims=1))
-
-#     # plotting code
-#     plot_npv_0 = plot()
-#     plot_npv_0 = plot!(collect(1:nt), pv_0_mean, c=:blue, linestyle=:dash, linewidth=1.5, label="without PV")
-#     plot_npv_0 = plot!(collect(1:nt), pv_0_min, fillrange = pv_0_max, fillalpha = 0.15, c=:blue, linealpha = 0, label="")
-#     plot_npv_0 = plot!(xlabel="", ylabel="Nodal PV [m]", xlims=(0, 24), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, size=(425, 500), legend=:topright)
-#     # plot_npv_0 = plot!(xlabel="", ylabel="Nodal PV [m]", xlims=(0, 96), xticks=(0:24:96), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, size=(425, 500), legend=:topright)
-#     plot_npv_k = plot()
-#     plot_np_k = plot!(collect(1:nt), pv_k_mean, c=:blue, linestyle=:solid, linewidth=1.5, label="with PV")
-#     plot_npv_k = plot!(collect(1:nt), pv_k_min, fillrange = pv_k_max, fillalpha = 0.15, c=:blue, linealpha = 0, label="")
-#     plot_npv_k = plot!(xlabel="Time step", ylabel="Nodal PV [m]", xlims=(0, 24), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, size=(425, 500), legend=:topright)
-#     # plot_npv_k = plot!(xlabel="Time step", ylabel="Nodal PV [m]", xlims=(0, 96), xticks=(0:24:96), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, size=(425, 500), legend=:topright)
-#     plot(plot_npv_0, plot_npv_k, layout=(2, 1))
-
-# end
 
 
 ### pressure heads (optimal dfc) ###

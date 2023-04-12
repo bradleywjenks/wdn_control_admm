@@ -299,18 +299,18 @@ function  auxiliary_update(xk, zk, λk, data, γ, pv_type; δmax=10)
 
     elseif pv_type == "variability"
         reg = 1e-12
-        # model = Model(Ipopt.Optimizer)
-        # set_optimizer_attribute(model, "warm_start_init_point", "yes")
-        # set_optimizer_attribute(model, "linear_solver", "ma57")
-        # set_optimizer_attribute(model, "mu_strategy", "adaptive")
-        # set_optimizer_attribute(model, "mu_oracle", "quality-function")
-        # set_optimizer_attribute(model, "fixed_variable_treatment", "make_parameter")
-        # set_optimizer_attribute(model, "print_level", 0)
+        model = Model(Ipopt.Optimizer)
+        set_optimizer_attribute(model, "warm_start_init_point", "yes")
+        set_optimizer_attribute(model, "linear_solver", "ma57")
+        set_optimizer_attribute(model, "mu_strategy", "adaptive")
+        set_optimizer_attribute(model, "mu_oracle", "quality-function")
+        set_optimizer_attribute(model, "fixed_variable_treatment", "make_parameter")
+        set_optimizer_attribute(model, "print_level", 0)
 
         # model = Model(Gurobi.Optimizer)
-        model = Model(Mosek.Optimizer)
+        # model = Model(Mosek.Optimizer)
         # model = Model(SCS.Optimizer)
-        set_silent(model)
+        # set_silent(model)
         @variable(model, Hmin[i, k] ≤ z[i=1:nn, k=1:nt] ≤ Hmax[i, k])
 
         # @constraint(model, (1/nn)*sum(sum((z[i, k] - z[i, k-1])^2 for i ∈ collect(1:nn)) for k ∈ collect(2:nt)) ≤ δmax^2)

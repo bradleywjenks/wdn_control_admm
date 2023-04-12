@@ -298,12 +298,12 @@ end
 
 ### save data ###
 begin
-    @save "data/admm_results/"*net_name*"_pv_type_"*pv_type*"_delta_"*string(δmax)*"_gamma_"*string(γk)*"_monolith.jld2" x_sol obj_sol cpu_time
+    @save "data/admm_results/"*net_name*pv_type*"_delta_"*string(δmax)*"_monolith.jld2" x_sol obj_sol cpu_time
 end
 
 ### load data ###
 begin
-    @load "data/admm_results/"*net_name*"_pv_type_"*pv_type*"_delta_"*string(δmax)*"_gamma_"*string(γk)*"_monolith.jld2" x_sol obj_sol cpu_time
+    @load "data/admm_results/"*net_name*pv_type*"_delta_"*string(δmax)*"_monolith.jld2" x_sol obj_sol cpu_time
 end
 
 

@@ -1,0 +1,71 @@
+% Recommended preamble:
+\begin{tikzpicture}
+\begin{axis}[xmode={log}, xlabel={$\gamma$}, ylabel={Iterations}, ymin={0}, ymax={500}]
+    \addplot+[style={solid, very thick}, mark={square}, mark size={2.5pt}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.0;green,0.5059;blue,0.4627}]
+        coordinates {
+
+            (0.010000000000000002,41)
+            (0.1,32)
+            (1.0,21)
+            (10.0,21)
+            (100.0,21)
+        }
+        ;
+    \addlegendentry {$\delta_1$ (PV)}
+    \addplot+[style={dashed, very thick}, mark={diamond}, mark size={4pt}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.0;green,0.5059;blue,0.4627}]
+        coordinates {
+            (0.001,116)
+            (0.010000000000000002,58)
+            (0.1,22)
+            (1.0,22)
+            (10.0,22)
+            (100.0,22)
+        }
+        ;
+    \addlegendentry {$\delta_2$ (PV)}
+    \addplot+[style={dotted, very thick}, mark={o}, mark size={3pt}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.0;green,0.5059;blue,0.4627}]
+        coordinates {
+            (0.001,89)
+            (0.010000000000000002,41)
+            (0.1,22)
+            (1.0,21)
+            (10.0,21)
+            (100.0,21)
+        }
+        ;
+    \addlegendentry {$\delta_3$ (PV)}
+    \addplot+[style={solid, very thick}, mark={square}, mark size={2.5pt}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.7569;green,0.1529;blue,0.1765}]
+        coordinates {
+            (0.001,430)
+            (0.010000000000000002,90)
+            (0.1,39)
+            (1.0,29)
+            (10.0,30)
+            (100.0,30)
+        }
+        ;
+    \addlegendentry {$\delta_1$ (PR)}
+    \addplot+[style={dashed, very thick}, mark={diamond}, mark size={4pt}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.7569;green,0.1529;blue,0.1765}]
+        coordinates {
+            (0.001,298)
+            (0.010000000000000002,72)
+            (0.1,41)
+            (1.0,20)
+            (10.0,20)
+            (100.0,19)
+        }
+        ;
+    \addlegendentry {$\delta_2$ (PR)}
+    \addplot+[style={dotted, very thick}, mark={o}, mark size={3pt}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.7569;green,0.1529;blue,0.1765}]
+        coordinates {
+            (0.001,149)
+            (0.010000000000000002,80)
+            (0.1,29)
+            (1.0,26)
+            (10.0,25)
+            (100.0,25)
+        }
+        ;
+    \addlegendentry {$\delta_3$ (PR)}
+\end{axis}
+\end{tikzpicture}
