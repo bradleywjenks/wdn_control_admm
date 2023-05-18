@@ -1,4 +1,4 @@
-name = "azp_scc_admm"
+name = "wdn_control_admm"
 uuid = "ffb36a50-ead8-41ac-8f53-4e77abb7dc20"
 authors = ["bradleywjenks <b.jenks21@imperial.ac.uk>"]
 version = "0.1.0"
