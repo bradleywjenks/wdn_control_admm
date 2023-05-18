@@ -1,7 +1,11 @@
 % Recommended preamble:
 \begin{tikzpicture}
-\begin{groupplot}[group style={group size={1 by 2}, vertical sep={0.65cm}}]
-    \nextgroupplot[ylabel={Primal residual [m]}, xmin={0}, xmax={150}, tick style={black}, legend pos={outer north east}, scale only axis={true}, width={10cm}, height={3.5cm}]
+\begin{groupplot}[group style={group size={1 by 2}, yticklabels at={edge left}, vertical sep={1.0cm}}]
+    \nextgroupplot[ylabel={Primal residual [m]}, xmin={0}, xmax={150}, ymax={6}, tick style={black}, scaled y ticks={false}, legend pos={outer north east}, scale only axis={true}, width={10cm}, height={3.5cm}, label style={{font=\Large}}, tick label style={{font=\large}}, y tick label style={{/pgf/number format/fixed zerofill, /pgf/number format/precision=1, /pgf/number format/fixed}}, legend style={{font=\large}}]
+    \node 
+    [draw={none}, color={black}, style={{font=\LARGE}}]  at 
+    (138.75,4.800000000000001)
+    {$\bm{\delta_{1}}$};
     \addplot+[style={solid, very thick}, mark={none}, color={rgb,1:red,0.6314;green,0.851;blue,0.6078}]
         coordinates {
             (1,4.799079192695686)
@@ -1006,7 +1010,7 @@
 
         }
         ;
-    \addlegendentry {$\gamma = 10^-3$}
+    \addlegendentry {$\gamma = 10^{-3}$}
     \addplot+[style={solid, very thick}, mark={none}, color={rgb,1:red,0.4549;green,0.7686;blue,0.4627}]
         coordinates {
             (1,4.799079192695487)
@@ -2011,7 +2015,7 @@
 
         }
         ;
-    \addlegendentry {$\gamma = 10^-2$}
+    \addlegendentry {$\gamma = 10^{-2}$}
     \addplot+[style={solid, very thick}, mark={none}, color={rgb,1:red,0.2549;green,0.6706;blue,0.3647}]
         coordinates {
             (1,4.799079192695444)
@@ -3016,7 +3020,7 @@
 
         }
         ;
-    \addlegendentry {$\gamma = 10^-1$}
+    \addlegendentry {$\gamma = 10^{-1}$}
     \addplot+[style={solid, very thick}, mark={none}, color={rgb,1:red,0.1373;green,0.5451;blue,0.2706}]
         coordinates {
             (1,4.799079192695757)
@@ -4021,7 +4025,7 @@
 
         }
         ;
-    \addlegendentry {$\gamma = 10^0$}
+    \addlegendentry {$\gamma = 10^{0}$}
     \addplot+[style={solid, very thick}, mark={none}, color={rgb,1:red,0.0;green,0.4275;blue,0.1725}]
         coordinates {
             (1,4.799079192695629)
@@ -5026,7 +5030,7 @@
 
         }
         ;
-    \addlegendentry {$\gamma = 10^1$}
+    \addlegendentry {$\gamma = 10^{1}$}
     \addplot+[style={solid, very thick}, mark={none}, color={rgb,1:red,0.0;green,0.2667;blue,0.1059}]
         coordinates {
             (1,4.799079192695174)
@@ -6031,8 +6035,8 @@
 
         }
         ;
-    \addlegendentry {$\gamma = 10^2$}
-    \nextgroupplot[ylabel={Dual residual [m]}, xmin={0}, xmax={150}, tick style={black}, scale only axis={true}, width={10cm}, height={3.5cm}]
+    \addlegendentry {$\gamma = 10^{2}$}
+    \nextgroupplot[ylabel={Dual residual [m]}, xlabel={Iteration}, xmin={0}, xmax={150}, ymax={56}, tick style={black}, scaled y ticks={{base 10:-1}}, scale only axis={true}, width={10cm}, height={3.5cm}, label style={{font=\Large}}, tick label style={{font=\large}}, y tick label style={{/pgf/number format/fixed zerofill, /pgf/number format/precision=1, /pgf/number format/fixed}}, legend style={{font=\large}}]
     \addplot+[style={solid, very thick}, mark={none}, color={rgb,1:red,0.6314;green,0.851;blue,0.6078}]
         coordinates {
             (1,50.65772092990436)

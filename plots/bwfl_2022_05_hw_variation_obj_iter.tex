@@ -1,0 +1,82 @@
+% Recommended preamble:
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size={2 by 1}, horizontal sep={2.0cm}}]
+    \nextgroupplot[xmode={log}, xlabel={$\gamma$}, ylabel={Objective value}, label style={{font=\Large}}, tick label style={{font=\large}}, legend style={{font=\large}}, ymin={3220}, ymax={3280}, ytick={{3220, 3230, ..., 3280}}, tick style={black}]
+    \addplot+[style={solid, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.302;green,0.686;blue,0.29}]
+        coordinates {
+            (0.001,3229.397560456477)
+            (0.010000000000000002,3231.6358396420933)
+            (0.1,3237.845957627096)
+            (1.0,3238.6560530124725)
+            (10.0,3239.6256564515284)
+            (100.0,3239.7519163017837)
+        }
+        ;
+    \addplot+[style={dashed, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.302;green,0.686;blue,0.29}]
+        coordinates {
+            (0.001,3231.517316468476)
+            (0.010000000000000002,3236.4635612228362)
+            (0.1,3243.6535594095576)
+            (1.0,3247.079795368441)
+            (10.0,3248.386834825365)
+            (100.0,3248.7026097565986)
+        }
+        ;
+    \addplot+[style={dotted, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.302;green,0.686;blue,0.29}]
+        coordinates {
+            (0.001,3241.7631985710336)
+            (0.010000000000000002,3246.206567332734)
+            (0.1,3251.9130266129428)
+            (1.0,3263.364925741666)
+            (10.0,3266.425850710439)
+            (100.0,3267.069887655075)
+        }
+        ;
+    \draw[style={solid, very thick}, color={black}] ({rel axis cs:1,0}|-{axis cs:0,3228.334315010967}) -- ({rel axis cs:0,0}|-{axis cs:0,3228.334315010967});
+    \nextgroupplot[xmode={log}, xlabel={$\gamma$}, ylabel={Iterations}, ymin={0}, ymax={400}, tick style={black}, ytick={{0, 80, ..., 400}}, legend pos={outer north east}, label style={{font=\Large}}, tick label style={{font=\large}}, legend style={{font=\large}}]
+    \addplot+[style={solid, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.302;green,0.686;blue,0.29}]
+        coordinates {
+            (0.001,150)
+            (0.010000000000000002,64)
+            (0.1,21)
+            (1.0,20)
+            (10.0,20)
+            (100.0,20)
+        }
+        ;
+    \addlegendentry {$\delta_1 \,$$(\mathcal{P}_v)$}
+    \addplot+[style={dashed, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.302;green,0.686;blue,0.29}]
+        coordinates {
+            (0.001,143)
+            (0.010000000000000002,36)
+            (0.1,22)
+            (1.0,21)
+            (10.0,21)
+            (100.0,21)
+        }
+        ;
+    \addlegendentry {$\delta_2 \,$$(\mathcal{P}_v)$}
+    \addplot+[style={dotted, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.302;green,0.686;blue,0.29}]
+        coordinates {
+            (0.001,324)
+            (0.010000000000000002,59)
+            (0.1,37)
+            (1.0,26)
+            (10.0,26)
+            (100.0,26)
+        }
+        ;
+    \addlegendentry {$\delta_3 \,$$(\mathcal{P}_v)$}
+    \addplot+[style={solid, very thick}, mark={none}, color={black}]
+        coordinates {
+            (0.001,-1)
+            (0.010000000000000002,-1)
+            (0.1,-1)
+            (1.0,-1)
+            (10.0,-1)
+            (100.0,-1)
+        }
+        ;
+    \addlegendentry {$\delta_{\infty}$}
+\end{groupplot}
+\end{tikzpicture}

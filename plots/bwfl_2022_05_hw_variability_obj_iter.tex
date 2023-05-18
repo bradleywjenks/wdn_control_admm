@@ -1,72 +1,72 @@
 % Recommended preamble:
 \begin{tikzpicture}
-\begin{groupplot}[group style={group size={2 by 1}, horizontal sep={1.5cm}}]
-    \nextgroupplot[xmode={log}, xlabel={$\gamma$}, ylabel={$f$}, ymin={3220}, ymax={3290}, ytick={{3220, 3230, ..., 3290}}, tick style={black}]
-    \addplot+[style={solid, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.894;green,0.102;blue,0.11}]
+\begin{groupplot}[group style={group size={2 by 1}, horizontal sep={1.6cm}}]
+    \nextgroupplot[xmode={log}, xlabel={$\gamma$}, ylabel={Objective value}, label style={{font=\Large}}, tick label style={{font=\large}}, legend style={{font=\large}}, scaled y ticks={{base 10:-3}}, ymin={3220}, ymax={3270}, ytick={{3220, 3230, ..., 3270}}, tick style={black}, y tick label style={{/pgf/number format/fixed zerofill}}]
+    \addplot+[style={solid, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.302;green,0.686;blue,0.29}]
         coordinates {
-            (0.001,3228.051699770535)
-            (0.010000000000000002,3229.9493036373196)
-            (0.1,3232.774458261956)
-            (1.0,3234.323183123622)
-            (10.0,3235.244577599325)
-            (100.0,3235.436328038422)
+            (0.001,3228.715968932125)
+            (0.010000000000000002,3230.9981487757095)
+            (0.1,3233.972096710107)
+            (1.0,3233.3012090522534)
+            (10.0,3235.86978197383)
+            (100.0,3234.669831449206)
         }
         ;
-    \addplot+[style={dashed, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.894;green,0.102;blue,0.11}]
+    \addplot+[style={dashed, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.302;green,0.686;blue,0.29}]
         coordinates {
-            (0.001,3229.3123944033778)
-            (0.010000000000000002,3233.4772208678555)
-            (0.1,3243.174168271701)
-            (1.0,3247.2201814586697)
-            (10.0,3249.735380248823)
-            (100.0,3250.17805542052)
+            (0.001,3229.9758967987186)
+            (0.010000000000000002,3236.7995495874407)
+            (0.1,3241.5825735177536)
+            (1.0,3243.177095650816)
+            (10.0,3243.4078809129946)
+            (100.0,3244.3756855385936)
         }
         ;
-    \addplot+[style={dotted, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.894;green,0.102;blue,0.11}]
+    \addplot+[style={dotted, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.302;green,0.686;blue,0.29}]
         coordinates {
-
-            (0.010000000000000002,3242.2325436821575)
-            (0.1,3255.8150116548823)
-            (1.0,3270.569430293482)
-            (10.0,3274.3897761025087)
-            (100.0,3275.271809074591)
+            (0.001,3235.5764255604927)
+            (0.010000000000000002,3242.3971834109807)
+            (0.1,3257.7947643680473)
+            (1.0,3261.853776206761)
+            (10.0,3262.379560169794)
+            (100.0,3262.6072258573363)
         }
         ;
-    \draw[style={solid, very thick}, color={black}] ({rel axis cs:1,0}|-{axis cs:0,3228.334315010967}) -- ({rel axis cs:0,0}|-{axis cs:0,3228.334315010967});
-    \nextgroupplot[xmode={log}, xlabel={$\gamma$}, ylabel={Iterations}, ymin={0}, ymax={200}, tick style={black}, legend pos={outer north east}]
-    \addplot+[style={solid, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.894;green,0.102;blue,0.11}]
+    \draw[style={solid, very thick}, color={black}] ({rel axis cs:1,0}|-{axis cs:0,3228.0604681700147}) -- ({rel axis cs:0,0}|-{axis cs:0,3228.0604681700147});
+    \nextgroupplot[xmode={log}, xlabel={$\gamma$}, ylabel={Iterations}, ymin={0}, ymax={60}, tick style={black}, ytick={{0, 15, ..., 60}}, legend pos={north east}, label style={{font=\Large}}, tick label style={{font=\large}}, legend style={{font=\large}}]
+    \addplot+[style={solid, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.302;green,0.686;blue,0.29}]
         coordinates {
-            (0.001,89)
-            (0.010000000000000002,41)
-            (0.1,22)
-            (1.0,21)
-            (10.0,21)
-            (100.0,21)
+            (0.001,31)
+            (0.010000000000000002,12)
+            (0.1,12)
+            (1.0,13)
+            (10.0,11)
+            (100.0,8)
         }
         ;
-    \addlegendentry {$\delta_1 \,$$(\mathcal{P}_v)$}
-    \addplot+[style={dashed, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.894;green,0.102;blue,0.11}]
+    \addlegendentry {$\delta_1 \,$$(\mathcal{C}_v)$}
+    \addplot+[style={dashed, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.302;green,0.686;blue,0.29}]
         coordinates {
-            (0.001,116)
-            (0.010000000000000002,58)
-            (0.1,22)
-            (1.0,22)
-            (10.0,22)
-            (100.0,22)
+            (0.001,42)
+            (0.010000000000000002,17)
+            (0.1,14)
+            (1.0,14)
+            (10.0,14)
+            (100.0,9)
         }
         ;
-    \addlegendentry {$\delta_2 \,$$(\mathcal{P}_v)$}
-    \addplot+[style={dotted, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.894;green,0.102;blue,0.11}]
+    \addlegendentry {$\delta_2 \,$$(\mathcal{C}_v)$}
+    \addplot+[style={dotted, very thick}, mark={o}, mark options={solid, fill opacity=0.15}, color={rgb,1:red,0.302;green,0.686;blue,0.29}]
         coordinates {
-
-            (0.010000000000000002,41)
-            (0.1,32)
-            (1.0,21)
-            (10.0,21)
-            (100.0,21)
+            (0.001,40)
+            (0.010000000000000002,22)
+            (0.1,15)
+            (1.0,14)
+            (10.0,14)
+            (100.0,11)
         }
         ;
-    \addlegendentry {$\delta_3 \,$$(\mathcal{P}_v)$}
+    \addlegendentry {$\delta_3 \,$$(\mathcal{C}_v)$}
     \addplot+[style={solid, very thick}, mark={none}, color={black}]
         coordinates {
             (0.001,-1)

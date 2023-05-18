@@ -6,10 +6,10 @@ using SharedArrays
 using LaTeXStrings
 using Statistics
 using Plots
+using LinearAlgebra
 
 # OPENBLAS_NUM_THREADS = 1
 addprocs(7)
-# addprocs(3)
 
 ### instantiate and precompile environment
 @everywhere begin
@@ -30,33 +30,24 @@ end
 
 ### input problem parameters ###
 @everywhere begin
-    # net_name = "bwfl_2022_05_hw"
-    # net_name = "modena"
-    net_name = "L_town"
-    # net_name = "bwkw_mod"
+    net_name = "bwfl_2022_05_hw"
+    # net_name = "L_town"
 
     # make_data = true
     make_data = false
-    # bv_open = true
-    bv_open = false
+    bv_open = true
+    # bv_open = false
 
     n_v = 3
     n_f = 4
     αmax = 25
-    δmax = 10
     umin = 0.2
     pmin = 15
-    # pmin = 10 # for bwkw network
     ρ = 50
-    obj_type = "azp-scc" # obj_type = "pv"; obj_type = "azp-scc"
-    pv_type = "range" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
 
-    scc_time = collect(38:42) # bwfl (peak)
-    # scc_time = collect(28:32) # bwkw (peak)
-    # scc_time = collect(12:16) # bwfl (min)
-    # scc_time = collect(7:8) # modena (peak)
-    # scc_time = collect(3:4) # modena (min)
-    # scc_time = []
+    pv_type = "range" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
+    δmax = 10
+    scc_time = collect(38:42) # bwfl (peak) and L_town
 end
 
 ### make network and problem data ###
@@ -82,11 +73,12 @@ begin
         # load pcv and afv locations
         @load "data/single_objective_results/"*net_name*"_azp_nv_"*string(n_v)*"_nf_"*string(n_f)*".jld2" sol_best
         v_loc = sol_best.v
+        v_dir = Int.(sign.(sol_best.q[v_loc, 1]))
         @load "data/single_objective_results/"*net_name*"_scc_nv_"*string(n_v)*"_nf_"*string(n_f)*".jld2" sol_best
         y_loc = sol_best.y
 
         # save problem data
-        make_object_data(net_name, network, opt_params, v_loc, y_loc)
+        make_object_data(net_name, network, opt_params, v_loc, v_dir, y_loc)
     end
 end
 
@@ -108,6 +100,8 @@ end
 # - convergence tolerance ϵ
 
 begin
+
+    # unload data
     np = data["np"]
     nn = data["nn"]
     nt = data["nt"]
@@ -116,12 +110,14 @@ begin
     xk_0 = SharedArray(vcat(data["q_init"], data["h_init"], zeros(np, nt), zeros(nn, nt)))
     zk = SharedArray(data["h_init"])
     λk = SharedArray(zeros(data["nn"], data["nt"]))
-    @everywhere γk = 0.01 # regularisation term
+    @everywhere γk = 0.1 # regularisation term
     @everywhere γ0 = 0 # regularisation term for first admm iteration
+    @everywhere scaled = false # scaled = true
 
     # ADMM parameters
     kmax = 1000
-    ϵ = 2e-1
+    ϵ_rel = 1e-3
+    ϵ_abs = 1e-2
     obj_hist = SharedArray(zeros(kmax, nt))
     xk = SharedArray(zeros(np+nn+np+nn, nt))
     z_hist = Array{Union{Nothing, Float64}}(nothing, nn*nt, kmax+1)
@@ -131,6 +127,7 @@ begin
     p_residual = []
     d_residual = []
     iter_f = []
+
 
 end
 
@@ -148,10 +145,11 @@ begin
                 @everywhere γ = γk
             end
             @sync @distributed for t ∈ collect(1:nt)
-                xk[:, t], obj_hist[k, t], status = primal_update(xk_0[:, t], zk[:, t], λk[:, t], data, γ, t, scc_time; ρ=ρ, umin=umin, δmax=δmax)
+            # for t ∈ collect(1:nt)
+                xk[:, t], obj_hist[k, t], status = primal_update(xk_0[:, t], zk[:, t], λk[:, t], data, γ, t, scc_time; ρ=ρ, umin=umin, δmax=δmax, scaled=scaled)
                 if status != 0
                     resto = true
-                    xk[:, t], obj_hist[k, t], status = primal_update(xk_0[:, t], zk[:, t], λk[:, t], data, γ, t, scc_time; ρ=ρ, umin=umin, δmax=δmax, resto=resto)
+                    xk[:, t], obj_hist[k, t], status = primal_update(xk_0[:, t], zk[:, t], λk[:, t], data, γ, t, scc_time; ρ=ρ, umin=umin, δmax=δmax, resto=resto, scaled=scaled)
                     if status != 0
                         error("IPOPT did not converge at time step t = $t.")
                     end
@@ -163,22 +161,24 @@ begin
             x_hist[:, k+1] = vec(xk)
 
             ### update auxiliary variable zk ###
-            zk = auxiliary_update(xk_0, zk, λk, data, γk, pv_type; δmax=δmax)
+            zk = auxiliary_update(xk_0, zk, λk, data, γk, pv_type; δmax=δmax, scaled=scaled)
             z_hist[:, k+1] = vec(zk)
 
             ### update dual variable λk ###
             hk = xk_0[np+1:np+nn, :]
-            λk = λk + γk.*(hk - zk)
+            λk = λk + γk.*(hk .- zk)
             # λk[findall(x->x .< 0, λk)] .= 0
 
             ### compute residuals ### 
-            p_residual_k = maximum(abs.(hk - zk))
+            p_residual_k = norm(hk .- zk)
             push!(p_residual, p_residual_k)
-            d_residual_k = maximum(abs.(z_hist[:, k+1] - z_hist[:, k]))
+            d_residual_k = norm(z_hist[:, k+1] .- z_hist[:, k])
             push!(d_residual, d_residual_k)
 
             ### ADMM status statement ###
-            if p_residual[k] ≤ ϵ && d_residual[k] ≤ ϵ
+            ϵ_p = sqrt(length(hk))*ϵ_abs + ϵ_rel*maximum([norm(hk), norm(zk)])
+            ϵ_d = sqrt(length(λk))*ϵ_abs + ϵ_rel*norm(λk)
+            if p_residual[k] ≤ ϵ_p && d_residual[k] ≤ ϵ_d
                 iter_f = k
                 @info "ADMM successful at iteration $k of $kmax. Primal residual = $p_residual_k, Dual residual = $d_residual_k. Algorithm terminated."
                 break
@@ -230,10 +230,6 @@ begin
     end
 end
 
-### load data ###
-# begin
-#     @load "data/admm_results/"*net_name*"_"*pv_type*"_delta_"*string(δmax)*"_gamma_"*string(γk)*"_distributed.jld2"  xk x_hist obj_hist iter_f p_residual d_residual cpu_time
-# end
 
 ### save data ###
 begin
@@ -246,66 +242,4 @@ begin
 end
 
 
-### plot residuals ###
-begin
-    # PyPlot.rc("text", usetex=true)
-    # PyPlot.rc("font", family="CMU Serif")
-    plot_p_residual = plot()
-    plot_p_residual = plot!(collect(1:length(p_residual)), p_residual, c=:red3, markerstrokewidth=0, markeralpha=1, seriestype=:scatter, markersize=5)
-    plot_p_residual = plot!(xlabel="", ylabel="Primal residual [m]", ylims=(0, 10), xlims=(0, 100), xtickfontsize=14, ytickfontsize=14, xguidefontsize=16, yguidefontsize=16, legendfont=14, legend=:none, fontfamily="Computer Modern", bottom_margin=4*Plots.mm, size=(600, 600))
-    plot_d_residual = plot()
-    plot_d_residual = plot!(collect(1:length(d_residual)), d_residual, c=:red3, markerstrokewidth=0, markeralpha=1, seriestype=:scatter, markersize=5)
-    plot_d_residual = plot!(xlabel="ADMM iteration", ylabel="Dual residual [m]", ylims=(0, 10), xlims=(0, 100), xtickfontsize=14, ytickfontsize=14, xguidefontsize=16, yguidefontsize=16, legendfont=14, legend=:none, fontfamily="Computer Modern", size=(600, 600))
-    plot(plot_p_residual, plot_d_residual, layout = (2, 1), right_margin=4*Plots.mm)
-end
-
-
-### plot objective function (time series) ### 
-begin
-    plot_azp = plot()
-    plot_azp = plot!(collect(1:nt), f_azp_pv, c=:red3, seriestype=:line, linewidth=2, label="with PV")
-    plot_azp = plot!(collect(1:nt), f_azp, c=:red3, seriestype=:line, linewidth=2, linestyle=:dash, label="without PV")
-    plot_azp = vspan!([scc_time[1], scc_time[end]], c=:black, alpha = 0.1, label = "SCC period")
-    # plot_azp = plot!(xlabel="", ylabel="AZP [m]",  xlims=(0, 24), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, legendborder=:false, legend=:best, bottom_margin=2*Plots.mm, size=(600, 550))
-    plot_azp = plot!(xlabel="", ylabel="AZP [m]",  xlims=(0, 96), xticks=(0:24:96), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=16, legendfont=14, legendborder=:false, legend=:best, bottom_margin=2*Plots.mm, fontfamily="Computer Modern", size=(600, 600))
-    plot_scc = plot()
-    plot_scc = plot!(collect(1:nt), f_scc_pv, c=:red3, seriestype=:line, linewidth=2, label="with PV")
-    plot_scc = plot!(collect(1:nt), f_scc, c=:red3, seriestype=:line, linewidth=2, linestyle=:dash, label="without PV")
-    plot_scc = vspan!([scc_time[1], scc_time[end]], c=:black, alpha = 0.1, label = "SCC period")
-    # plot_scc = plot!(xlabel="Time step", ylabel=L"SCC $[\%]$", xlims=(0, 24), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, legend=:none, size=(600, 550))
-    plot_scc = plot!(xlabel="Time step", ylabel="SCC [%]", xlims=(0, 96), xticks=(0:24:96), xtickfontsize=14, ytickfontsize=14, xguidefontsize=16, yguidefontsize=16, legendfont=14, legend=:none, fontfamily="Computer Modern", size=(600, 600))
-    plot(plot_azp, plot_scc, layout=(2, 1))
-
-    # ylims=(30, 55)
-    # ylims=(0, 50)
-    # xticks=(0:24:96)
-    # size=(425, 500)
-end
-
-
-### pressure heads (optimal dfc) ###
-begin
-    t = 75 # time step
-    node_key = "pressure head"
-    p = hk .- data["elev"]
-    # p = network.elev
-    node_values = vcat(p[:, t], repeat([0.0], network.n0))
-    network.pcv_loc = data["v_loc"]
-    network.afv_loc = data["y_loc"]
-    plot_network_nodes(network, node_values=node_values, node_key=node_key, clims=(0, 80))
-    plot_network_layout(network, pipes=false, reservoirs=true, pcvs=true, afvs=true, legend=false)
-end
-
-
-### maximum pipe flow velocities (optimal dfc) ###
-begin
-    edge_key = "velocity"
-    A = 1 ./ ((π/4).*data["D"].^2)
-    v = qk ./ 1000 .* A
-    edge_values = maximum(v, dims=2)
-    network.pcv_loc = data["v_loc"]
-    network.afv_loc = data["y_loc"]
-    plot_network_edges(network, edge_values=edge_values, edge_key=edge_key, clims=(0, 0.4))
-    plot_network_layout(network, pipes=false, reservoirs=true, pcvs=true, afvs=true, legend=false)
-end
 

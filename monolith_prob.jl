@@ -14,20 +14,20 @@ include("src/admm_functions.jl")
 
 ### input problem parameters ###
 begin
-    # net_name = "bwfl_2022_05_hw"
+    net_name = "bwfl_2022_05_hw"
     # net_name = "modena"
-    net_name = "L_town"
+    # net_name = "L_town"
     # net_name = "bwkw_mod"
 
-    # make_data = true
-    make_data = false
-    # bv_open = true
-    bv_open = false
+    make_data = true
+    # make_data = false
+    bv_open = true
+    # bv_open = false
 
     n_v = 3
     n_f = 4
     αmax = 25
-    δmax = 20
+    δmax = 25
     umin = 0.2
     ρ = 50
     # pmin = 10 # for bwkw network
@@ -35,8 +35,8 @@ begin
     pv_type = "variability" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
     pv_active = true
 
-    # scc_time = collect(38:42) # bwfl (peak)
-    scc_time = collect(28:32) # bwkw (peak)
+    scc_time = collect(38:42) # bwfl (peak)
+    # scc_time = collect(28:32) # bwkw (peak)
     # scc_time = collect(12:16) # bwfl (min)
     # scc_time = collect(7:8) # modena (peak)
     # scc_time = collect(3:4) # modena (min)
@@ -66,9 +66,9 @@ begin
         opt_params.Qmin , opt_params.Qmax, opt_params.umax = q_bounds_from_u(network, q_init; max_v=max_v)
 
         # load pcv and afv locations
-        @load "data/single_objective_results/"*net_name*"_azp_random_nv_"*string(n_v)*"_nf_"*string(n_f)*".jld2" sol_best
+        @load "data/single_objective_results/"*net_name*"_azp_nv_"*string(n_v)*"_nf_"*string(n_f)*".jld2" sol_best
         v_loc = sol_best.v
-        @load "data/single_objective_results/"*net_name*"_scc_random_nv_"*string(n_v)*"_nf_"*string(n_f)*".jld2" sol_best
+        @load "data/single_objective_results/"*net_name*"_scc_nv_"*string(n_v)*"_nf_"*string(n_f)*".jld2" sol_best
         y_loc = sol_best.y
 
         # save problem data
@@ -123,13 +123,16 @@ cpu_time = @elapsed begin
     set_optimizer_attribute(model, "max_iter", 3000)
     set_optimizer_attribute(model, "warm_start_init_point", "yes")
     set_optimizer_attribute(model, "linear_solver", "ma57")
+    set_optimizer_attribute(model, "ma57_pivtol", 1e-8)
+    set_optimizer_attribute(model, "ma57_pre_alloc", 10.0)
+    set_optimizer_attribute(model, "ma57_automatic_scaling", "yes")
     set_optimizer_attribute(model, "mu_strategy", "adaptive")
     set_optimizer_attribute(model, "mu_oracle", "quality-function")
     set_optimizer_attribute(model, "fixed_variable_treatment", "make_parameter")
     # set_optimizer_attribute(model, "tol", 1e-6)
     # set_optimizer_attribute(model, "constr_viol_tol", 1e-9)
-    set_optimizer_attribute(model, "constr_viol_tol", 2.5e-1)
-    set_optimizer_attribute(model, "fast_step_computation", "yes")
+    set_optimizer_attribute(model, "constr_viol_tol", 2e-1)
+    # set_optimizer_attribute(model, "fast_step_computation", "yes")
     # set_optimizer_attribute(model, "hessian_approximation", "exact")
     # set_optimizer_attribute(model, "hessian_approximation", "limited-memory")
     # set_optimizer_attribute(model, "derivative_test", "first-order")
@@ -148,9 +151,8 @@ cpu_time = @elapsed begin
     @variable(model, ψ⁺[i=1:np, k=1:nt])
     @variable(model, ψ⁻[i=1:np, k=1:nt])
 
-     # hydraulic conservation constraints
-     reg = 1e-08
-     @NLconstraint(model, [i=1:np, k=1:nt], r[i]*(q[i, k]+reg)*abs(q[i, k]+reg)^(nexp[i]-1) + sum(A12[i, j]*h[j, k] for j ∈ nodes_map[i]) + sum(A10[i, j]*h0[j, k] for j ∈ sources_map[i]) + η[i, k] == 0)
+    # hydraulic conservation constraints
+    @NLconstraint(model, [i=1:np, k=1:nt], r[i]*(q[i, k])*abs(q[i, k])^(nexp[i]-1) + sum(A12[i, j]*h[j, k] for j ∈ nodes_map[i]) + sum(A10[i, j]*h0[j, k] for j ∈ sources_map[i]) + η[i, k] == 0)
     @constraint(model, A12'*q - α .== d)
 
     # bilinear constraint for dbv control direction
@@ -203,49 +205,13 @@ cpu_time = @elapsed begin
     elseif obj_type == "scc"
         @objective(model, Min, (1/nt)*sum(sum(-scc_weights[j]*(ψ⁺[j, k] + ψ⁻[j, k]) for j ∈ 1:np) for k ∈ 1:nt)) 
     elseif obj_type == "azp-scc"
-        function f_ex(x...; w1=azp_weights, w2=scc_weights, elev=elev, nt=nt, np=np, nn=nn, scc_time=scc_time)
-            x = [x...]
-            x = reshape(x, nn+2*np, nt)
-            h = x[1:nn, :]
-            ψ⁺ = x[nn+1:nn+np, :]
-            ψ⁻ = x[nn+np+1:end, :]
 
-            azp_time = collect(1:nt)
-            deleteat!(azp_time, scc_time)
+        azp_time = collect(1:nt)
+        deleteat!(azp_time, scc_time)
 
-            # azp objective function value
-            f_azp = (1/length(azp_time))*sum(sum(w1[i]*(h[i, k] - elev[i]) for i ∈ 1:nn) for k ∈ azp_time)
-            # scc objective function value
-            f_scc = (1/length(scc_time))*sum(sum(-w2[i]*(ψ⁺[i, k] + ψ⁻[i, k]) for i ∈ 1:np) for k ∈ scc_time)
+        @objective(model, Min,
+            sum(sum(azp_weights[i]*(h[i, k] - elev[i]) for i ∈ 1:nn) for k ∈ azp_time) + sum(sum(-scc_weights[j]*(ψ⁺[j, k] + ψ⁻[j, k]) for j ∈ 1:np) for k ∈ scc_time))
 
-            f = f_azp + f_scc
-
-            return f
-        end
-        function ∇f_ex(g, x...; w1=opt_params.azp_weights, w2=opt_params.scc_weights, elev=network.elev, nt=network.nt, np=network.np, nn=network.nn, scc_time=scc_time)
-            azp_time = collect(1:nt)
-            deleteat!(azp_time, scc_time)
-
-            g_azp = vcat(w1, zeros(2*np))
-            g_scc = vcat(zeros(nn), -w2, -w2)
-
-            g = []
-            for k ∈ 1:nt
-                if any(x->x==k, azp_time)
-                    append!(g, g_azp)
-                elseif any(x->x==k, scc_time)
-                    append!(g, g_scc)
-                end
-            end
-
-            return 
-        end
-        function ∇²f_ex(H, x...; w1=opt_params.azp_weights, w2=opt_params.scc_weights, elev=network.elev, nt=network.nt, np=network.np, nn=network.nn, scc_time=scc_time)
-            # nothing since JuMP already populates zeros in Hessian matrix
-            return
-        end
-        register(model, :f_ex, length(vec(h))+length(vec(ψ⁺))+length(vec(ψ⁻)), f_ex, ∇f_ex, ∇²f_ex)
-        @objective(model, Min, f_ex(vcat(h, ψ⁺, ψ⁻)...))
     end
 
     # unload and set starting values
@@ -263,6 +229,9 @@ cpu_time = @elapsed begin
     set_start_value.(ψ⁻, ψ⁻_init)
     set_start_value.(q, q_init)
     set_start_value.(h, h_init)
+
+    # maximum runtime
+    set_time_limit_sec(model, 8*60*60)
 
     # run optimization model
     optimize!(model)
@@ -297,13 +266,15 @@ end
 
 
 ### save data ###
+
 begin
-    @save "data/admm_results/"*net_name*pv_type*"_delta_"*string(δmax)*"_monolith.jld2" x_sol obj_sol cpu_time
+    # @save "data/monolith_results/"*net_name*".jld2" x_sol obj_sol cpu_time
+    @save "data/monolith_results/"*net_name*pv_type*"_delta_"*string(δmax)*".jld2" x_sol obj_sol cpu_time
 end
 
 ### load data ###
 begin
-    @load "data/admm_results/"*net_name*pv_type*"_delta_"*string(δmax)*"_monolith.jld2" x_sol obj_sol cpu_time
+    @load "data/monolith_results/"*net_name*pv_type*"_delta_"*string(δmax)*".jld2" x_sol obj_sol cpu_time
 end
 
 
