@@ -4,8 +4,8 @@ Manifest.toml
 *.jld2
 
 # ignore uploading below files
-admm_distributed_ECC23.jl;
+admm_distributed_ECC23.jl
 
-ECC23_plotting.jl;
+ECC23_plotting.jl
 
-network_plotting.jl;
+network_plotting.jl
