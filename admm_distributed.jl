@@ -30,13 +30,14 @@ end
 
 ### input problem parameters ###
 @everywhere begin
-    net_name = "bwfl_2022_05_hw"
+    # net_name = "bwfl_2022_05_hw" # problem data not provided in open-source repo
     # net_name = "L_town"
+    net_name = "modena"
 
-    # make_data = true
+    ##### IMPORTANT #####
+    ##### set make_data = false and use provided data #####
     make_data = false
-    bv_open = true
-    # bv_open = false
+    bv_open = false
 
     n_v = 3
     n_f = 4
@@ -45,12 +46,13 @@ end
     pmin = 15
     ρ = 50
 
-    pv_type = "range" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
-    δmax = 10
-    scc_time = collect(38:42) # bwfl (peak) and L_town
+    pv_type = "variability" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
+    δmax = 20
+    # scc_time = collect(38:42) # bwfl (peak) and L_town
+    scc_time = collect(7:9) # Modena
 end
 
-### make network and problem data ###
+### make network and problem data ### (WILL SKIP AUTOMATICALLY)
 begin
     if make_data
         using OpWater

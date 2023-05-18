@@ -1,6 +1,8 @@
 Manifest.toml
 
 # ignore data files
+!data/problem_data/L_town_nv_3_nf_4.jld2
+!data/problem_data/modena_nv_3_nf_4.jld2
 *.jld2
 
 # ignore uploading below files
