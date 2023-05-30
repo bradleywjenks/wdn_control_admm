@@ -67,7 +67,7 @@ begin
     δ_1 = [25, 20, 15]
     δ_2 = [20, 15, 10]
     δ_3 = [15, 10, 5]
-    γ_hat = 0.1
+    γ_hat = 0.01
 
     scc_time = collect(38:42) 
     kmax = 1000
@@ -376,8 +376,8 @@ end
 
 ### pressure cdf plots ###
 begin
-    pv_type = "variability"
-    # pv_type = "range"
+    # pv_type = "variability"
+    pv_type = "range"
     # pv_type = "variation"
 
     # compute values

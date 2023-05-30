@@ -303,7 +303,7 @@ function  auxiliary_update(xk, zk, λk, data, γ, pv_type; δmax=10, scaled=fals
 end
 
 
-function make_object_data(net_name, network, opt_params, v_loc, v_dir, y_loc)
+function make_object_data(net_name, network, opt_params, v_loc, v_dir, y_loc, scc_time)
     ### make new objects to pass into distributed Julia routine. OpWater is too big to load into each local worker. It creates memory issues!
 
     # unload network data
@@ -329,6 +329,8 @@ function make_object_data(net_name, network, opt_params, v_loc, v_dir, y_loc)
     αmax = deepcopy(opt_params.αmax)
     azp_weights = deepcopy(opt_params.azp_weights)
     scc_weights = deepcopy(opt_params.scc_weights)
+    ρ = deepcopy(opt_params.ρ)
+    umin = deepcopy(opt_params.umin)
 
     # hydraulic_simulation from OpWater package
     q_init, h_init, err, iter = hydraulic_simulation(network, opt_params)
@@ -359,6 +361,6 @@ function make_object_data(net_name, network, opt_params, v_loc, v_dir, y_loc)
         αmax .= 0
     end
 
-    @save "data/problem_data/"*net_name*"_nv_"*string(length(v_loc))*"_nf_"*string(length(y_loc))*".jld2" elev nexp d h0 A10 A12 r D nt np nn Qmin Qmax Hmin Hmax ηmin ηmax αmax azp_weights scc_weights v_loc y_loc q_init h_init
+    @save "data/problem_data/"*net_name*"_nv_"*string(length(v_loc))*"_nf_"*string(length(y_loc))*".jld2" elev nexp d h0 A10 A12 r D nt np nn Qmin Qmax Hmin Hmax ηmin ηmax αmax azp_weights scc_weights v_loc y_loc q_init h_init ρ umin scc_time
 
 end

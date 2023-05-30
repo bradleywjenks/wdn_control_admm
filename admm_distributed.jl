@@ -30,59 +30,18 @@ end
 
 ### input problem parameters ###
 @everywhere begin
-    # net_name = "bwfl_2022_05_hw" # problem data not provided in open-source repo
+    net_name = "bwfl_2022_05_hw"
     # net_name = "L_town"
-    net_name = "modena"
-
-    ##### IMPORTANT #####
-    ##### set make_data = false and use provided data #####
-    make_data = false
-    bv_open = false
+    # net_name = "modena"
 
     n_v = 3
     n_f = 4
-    αmax = 25
-    umin = 0.2
-    pmin = 15
-    ρ = 50
 
     pv_type = "variability" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
     δmax = 20
-    # scc_time = collect(38:42) # bwfl (peak) and L_town
-    scc_time = collect(7:9) # Modena
+
 end
 
-### make network and problem data ### (WILL SKIP AUTOMATICALLY)
-begin
-    if make_data
-        using OpWater
-        # load network data
-        if net_name == "bwfl_2022_05_hw"
-            load_name = "bwfl_2022_05/hw"
-        else
-            load_name = net_name
-        end
-        network = load_network(load_name, afv_idx=false, dbv_idx=false, pcv_idx=false, bv_open=bv_open)
-
-        # make optimization parameters
-        opt_params = make_prob_data(network; αmax_mul=αmax, umin=umin, ρ=ρ, pmin=pmin)
-        q_init, h_init, err, iter = hydraulic_simulation(network, opt_params)
-        S = (π * (network.D) .^ 2) / 4
-        v0 = q_init ./ (1000 * S) 
-        max_v = ceil(maximum(abs.(v0)))
-        opt_params.Qmin , opt_params.Qmax, opt_params.umax = q_bounds_from_u(network, q_init; max_v=max_v)
-
-        # load pcv and afv locations
-        @load "data/single_objective_results/"*net_name*"_azp_nv_"*string(n_v)*"_nf_"*string(n_f)*".jld2" sol_best
-        v_loc = sol_best.v
-        v_dir = Int.(sign.(sol_best.q[v_loc, 1]))
-        @load "data/single_objective_results/"*net_name*"_scc_nv_"*string(n_v)*"_nf_"*string(n_f)*".jld2" sol_best
-        y_loc = sol_best.y
-
-        # save problem data
-        make_object_data(net_name, network, opt_params, v_loc, v_dir, y_loc)
-    end
-end
 
 
 ### load problem data for distributed.jl version ###
@@ -96,7 +55,7 @@ end
 
 ### define ADMM parameters and starting values ###
 # - primal variable, x := [q, h, η, α]
-# - auxiliary (coupling) variable, z := h
+# - auxiliary (linking) variable, z := h
 # - dual variable λ
 # - regularisation parameter γ
 # - convergence tolerance ϵ
@@ -107,6 +66,9 @@ begin
     np = data["np"]
     nn = data["nn"]
     nt = data["nt"]
+    scc_time = data["scc_time"]
+    ρ = data["ρ"]
+    umin = data["umin"]
 
     # initialise variables
     xk_0 = SharedArray(vcat(data["q_init"], data["h_init"], zeros(np, nt), zeros(nn, nt)))
@@ -114,10 +76,10 @@ begin
     λk = SharedArray(zeros(data["nn"], data["nt"]))
     @everywhere γk = 0.1 # regularisation term
     @everywhere γ0 = 0 # regularisation term for first admm iteration
-    @everywhere scaled = false # scaled = true
+    @everywhere scaled = true # scaled = false
 
     # ADMM parameters
-    kmax = 1000
+    kmax = 100
     ϵ_rel = 1e-3
     ϵ_abs = 1e-2
     obj_hist = SharedArray(zeros(kmax, nt))
@@ -129,7 +91,6 @@ begin
     p_residual = []
     d_residual = []
     iter_f = []
-
 
 end
 

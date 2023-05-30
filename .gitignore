@@ -5,6 +5,7 @@ Manifest.toml
 
 !data/problem_data/L_town_nv_3_nf_4.jld2
 !data/problem_data/modena_nv_3_nf_4.jld2
+!data/problem_data/bwfl_2022_05_hw_nv_3_nf_4.jld2
 
 
 # ignore uploading below files

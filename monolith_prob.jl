@@ -15,65 +15,20 @@ include("src/admm_functions.jl")
 ### input problem parameters ###
 begin
     net_name = "bwfl_2022_05_hw"
-    # net_name = "modena"
     # net_name = "L_town"
-    # net_name = "bwkw_mod"
-
-    make_data = true
-    # make_data = false
-    bv_open = true
-    # bv_open = false
+    # net_name = "modena"
 
     n_v = 3
     n_f = 4
-    αmax = 25
-    δmax = 25
-    umin = 0.2
-    ρ = 50
-    # pmin = 10 # for bwkw network
-    obj_type = "azp-scc"
+
     pv_type = "variability" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
     pv_active = true
+    δmax = 15
+    δviol = 1.0 # allowed constraint violation on the basis of ADMM results: 1.2 m for pressure range; 1.0 m for pressure variability
 
-    scc_time = collect(38:42) # bwfl (peak)
-    # scc_time = collect(28:32) # bwkw (peak)
-    # scc_time = collect(12:16) # bwfl (min)
-    # scc_time = collect(7:8) # modena (peak)
-    # scc_time = collect(3:4) # modena (min)
-    # scc_time = []
+    obj_type = "azp-scc"
 
     resto = false
-end
-
-### make network and problem data ###
-begin
-    if make_data
-        using OpWater
-        # load network data
-        if net_name == "bwfl_2022_05_hw"
-            load_name = "bwfl_2022_05/hw"
-        else
-            load_name = net_name
-        end
-        network = load_network(load_name, afv_idx=false, dbv_idx=false, pcv_idx=false, bv_open=bv_open)
-
-        # make optimization parameters
-        opt_params = make_prob_data(network; αmax_mul=αmax, umin=umin, ρ=ρ)
-        q_init, h_init, err, iter = hydraulic_simulation(network, opt_params)
-        S = (π * (network.D) .^ 2) / 4
-        v0 = q_init ./ (1000 * S) 
-        max_v = ceil(maximum(abs.(v0)))
-        opt_params.Qmin , opt_params.Qmax, opt_params.umax = q_bounds_from_u(network, q_init; max_v=max_v)
-
-        # load pcv and afv locations
-        @load "data/single_objective_results/"*net_name*"_azp_nv_"*string(n_v)*"_nf_"*string(n_f)*".jld2" sol_best
-        v_loc = sol_best.v
-        @load "data/single_objective_results/"*net_name*"_scc_nv_"*string(n_v)*"_nf_"*string(n_f)*".jld2" sol_best
-        y_loc = sol_best.y
-
-        # save problem data
-        make_object_data(net_name, network, opt_params, v_loc, y_loc)
-    end
 end
 
 
@@ -110,6 +65,9 @@ cpu_time = @elapsed begin
     α_lo = zeros(nn, nt)
     y_loc = data["y_loc"]
     v_loc = data["v_loc"]
+    scc_time = data["scc_time"]
+    ρ = data["ρ"]
+    umin = data["umin"]
 
     # define nonlinear SCC objective function
     ψ_ex(q, A, s; ρ=ρ, umin=umin) = 1/(1+exp(-ρ*((s*q*A) - umin)))
@@ -123,7 +81,7 @@ cpu_time = @elapsed begin
     set_optimizer_attribute(model, "max_iter", 3000)
     set_optimizer_attribute(model, "warm_start_init_point", "yes")
     set_optimizer_attribute(model, "linear_solver", "ma57")
-    set_optimizer_attribute(model, "ma57_pivtol", 1e-8)
+    set_optimizer_attribute(model, "ma57_pivtol", 1e-4)
     set_optimizer_attribute(model, "ma57_pre_alloc", 10.0)
     set_optimizer_attribute(model, "ma57_automatic_scaling", "yes")
     set_optimizer_attribute(model, "mu_strategy", "adaptive")
@@ -131,7 +89,7 @@ cpu_time = @elapsed begin
     set_optimizer_attribute(model, "fixed_variable_treatment", "make_parameter")
     # set_optimizer_attribute(model, "tol", 1e-6)
     # set_optimizer_attribute(model, "constr_viol_tol", 1e-9)
-    set_optimizer_attribute(model, "constr_viol_tol", 2e-1)
+    # set_optimizer_attribute(model, "constr_viol_tol", 2e-1)
     # set_optimizer_attribute(model, "fast_step_computation", "yes")
     # set_optimizer_attribute(model, "hessian_approximation", "exact")
     # set_optimizer_attribute(model, "hessian_approximation", "limited-memory")
@@ -152,22 +110,23 @@ cpu_time = @elapsed begin
     @variable(model, ψ⁻[i=1:np, k=1:nt])
 
     # hydraulic conservation constraints
-    @NLconstraint(model, [i=1:np, k=1:nt], r[i]*(q[i, k])*abs(q[i, k])^(nexp[i]-1) + sum(A12[i, j]*h[j, k] for j ∈ nodes_map[i]) + sum(A10[i, j]*h0[j, k] for j ∈ sources_map[i]) + η[i, k] == 0)
+    reg = 1e-08
+    @NLconstraint(model, [i=1:np, k=1:nt], r[i]*(q[i, k]+reg)*abs(q[i, k]+reg)^(nexp[i]-1) + sum(A12[i, j]*h[j, k] for j ∈ nodes_map[i]) + sum(A10[i, j]*h0[j, k] for j ∈ sources_map[i]) + η[i, k] == 0)
     @constraint(model, A12'*q - α .== d)
 
     # bilinear constraint for dbv control direction
-    ϵ_bi = -0.05
+    ϵ_bi = 0
     @NLconstraint(model, [i=1:np, k=1:nt; i in v_loc], ϵ_bi ≤ η[i, k]*q[i, k])
 
     # auxiliary variables for scc sigmoid functions
-    @NLconstraint(model, [i=1:np, k=1:nt], ψ⁺[i, k] ==  (1+exp(-ρ*((q[i, k]/1000*A[i]) - umin)))^-1)
-    @NLconstraint(model, [i=1:np, k=1:nt], ψ⁻[i, k] ==  (1+exp(-ρ*(-(q[i, k]/1000*A[i]) - umin)))^-1)
+    @NLconstraint(model, [i=1:np, k=1:nt], ψ⁺[i, k] == (1+exp(-ρ*((q[i, k]/1000*A[i]) - umin)))^-1)
+    @NLconstraint(model, [i=1:np, k=1:nt], ψ⁻[i, k] == (1+exp(-ρ*(-(q[i, k]/1000*A[i]) - umin)))^-1)
 
     # pressure variation (pv) constraint
     if pv_active
         if pv_type == "variation"
-            @constraint(model, [i=1:nn, k=1:nt; k!=nt], h[i, k+1] .- h[i, k] .≤ δmax)
-            @constraint(model, [i=1:nn, k=1:nt; k!=nt], -δmax .≤ h[i, k+1] .- h[i, k])
+            @constraint(model, [i=1:nn, k=1:nt; k!=nt], h[i, k+1] .- h[i, k] .≤ (δmax + δviol))
+            @constraint(model, [i=1:nn, k=1:nt; k!=nt], -1*(δmax + δviol) .≤ h[i, k+1] .- h[i, k])
     
         elseif pv_type == "variability"
             reg = 1e-12
@@ -185,14 +144,14 @@ cpu_time = @elapsed begin
                     A[i, i+1] = -1
                 end
             end
-            @constraint(model, [i=1:nn], vec(h[i, :])'*A*vec(h[i, :]) .≤ δmax^2)
+            @constraint(model, [i=1:nn], vec(h[i, :])'*A*vec(h[i, :]) .≤ (δmax + δviol)^2)
      
         elseif pv_type == "range"
             @variable(model, l[i=1:nn])
             @variable(model, u[i=1:nn])
             @constraint(model, [i=1:nn, k=1:nt], h[i, k] ≤ u[i])
             @constraint(model, [i=1:nn, k=1:nt], l[i] ≤ h[i, k])
-            @constraint(model, [i=1:nn], u[i] - l[i] .≤ δmax)
+            @constraint(model, [i=1:nn], u[i] - l[i] .≤ (δmax + δviol))
     
         elseif pv_type == "none"
             # nothing
@@ -231,7 +190,7 @@ cpu_time = @elapsed begin
     set_start_value.(h, h_init)
 
     # maximum runtime
-    set_time_limit_sec(model, 8*60*60)
+    set_time_limit_sec(model, 6*60*60)
 
     # run optimization model
     optimize!(model)
