@@ -1,4 +1,5 @@
 Manifest.toml
+.vscode/
 
 # ignore data files
 *.jld2
@@ -12,3 +13,4 @@ Manifest.toml
 admm_distributed_ECC23.jl
 ECC23_plotting.jl
 network_plotting.jl
+plots/
