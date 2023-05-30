@@ -60,10 +60,6 @@ function primal_update(xk, zk, λk, data, γ, t, scc_time; ρ=50, umin=0.2, δma
     # set_optimizer_attribute(model, "tol", 1e-6)
     # set_optimizer_attribute(model, "constr_viol_tol", 1e-9)
     set_optimizer_attribute(model, "fast_step_computation", "yes")
-    # set_optimizer_attribute(model, "hessian_approximation", "exact")
-    # set_optimizer_attribute(model, "hessian_approximation", "limited-memory")
-    # set_optimizer_attribute(model, "derivative_test", "first-order")
-    # set_optimizer_attribute(model, "derivative_test", "second-order")
     set_optimizer_attribute(model, "print_level", 0)
     if resto
         set_optimizer_attribute(model, "start_with_resto", "yes")
@@ -217,9 +213,6 @@ function  auxiliary_update(xk, zk, λk, data, γ, pv_type; δmax=10, scaled=fals
         # set_silent(model)
         @variable(model, Hmin[i, k] ≤ z[i=1:nn, k=1:nt] ≤ Hmax[i, k])
 
-        # @constraint(model, (1/nn)*sum(sum((z[i, k] - z[i, k-1])^2 for i ∈ collect(1:nn)) for k ∈ collect(2:nt)) ≤ δmax^2)
-        # @constraint(model, [i=1:nn], sum((z[i, k] - z[i, k-1])^2 for k ∈ collect(2:nt)) .≤ δmax^2)
-
         A = spzeros(nt, nt)
         for i ∈ 1:nt
             if i == 1
@@ -304,7 +297,7 @@ end
 
 
 function make_object_data(net_name, network, opt_params, v_loc, v_dir, y_loc, scc_time)
-    ### make new objects to pass into distributed Julia routine. OpWater is too big to load into each local worker. It creates memory issues!
+    ### make new object to pass into distributed Julia routine.
 
     # unload network data
     elev = deepcopy(network.elev)
@@ -339,15 +332,6 @@ function make_object_data(net_name, network, opt_params, v_loc, v_dir, y_loc, sc
     if length(v_loc) > 0
         ηmin[setdiff(1:np, v_loc), :] .= 0
         ηmax[setdiff(1:np, v_loc), :] .= 0
-        # for (i, val) ∈ enumerate(v_loc)
-        #     if v_dir[i] == 1
-        #         ηmin[val, :] .= -1e-01
-        #         Qmin[val, :] .= -1e-01
-        #     elseif v_dir[i] == -1
-        #         ηmax[val, :] .= 1e-01
-        #         Qmax[val, :] .= 1e-01
-        #     end
-        # end
     else
         ηmin .= 0
         ηmax .= 0
