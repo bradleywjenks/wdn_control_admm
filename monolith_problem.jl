@@ -21,10 +21,10 @@ begin
     n_v = 3
     n_f = 4
 
-    pv_type = "variability" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
+    pv_type = "range" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
     pv_active = true
-    δmax = 15
-    δviol = 1.0 # allowed constraint violation on the basis of ADMM results: 1.2 m for pressure range; 1.0 m for pressure variability
+    δmax = 20
+    δviol = 1.2 # allowed constraint violation on the basis of ADMM results: 1.2 m for pressure range; 1.0 m for pressure variability
 
     obj_type = "azp-scc"
 
@@ -81,9 +81,9 @@ cpu_time = @elapsed begin
     set_optimizer_attribute(model, "max_iter", 3000)
     set_optimizer_attribute(model, "warm_start_init_point", "yes")
     set_optimizer_attribute(model, "linear_solver", "ma57")
-    set_optimizer_attribute(model, "ma57_pivtol", 1e-4)
-    set_optimizer_attribute(model, "ma57_pre_alloc", 10.0)
-    set_optimizer_attribute(model, "ma57_automatic_scaling", "yes")
+    # set_optimizer_attribute(model, "ma57_pivtol", 1e-4)
+    # set_optimizer_attribute(model, "ma57_pre_alloc", 10.0)
+    # set_optimizer_attribute(model, "ma57_automatic_scaling", "yes")
     set_optimizer_attribute(model, "mu_strategy", "adaptive")
     set_optimizer_attribute(model, "mu_oracle", "quality-function")
     set_optimizer_attribute(model, "fixed_variable_treatment", "make_parameter")
@@ -269,32 +269,3 @@ begin
     # size=(425, 500)
 end
 
-
-
-### pressure variation plot (cdf) ###
-begin
-    pv = zeros(nn)
-    if pv_type == "variation"
-        pv = [maximum([abs(hk[i, k] - hk[i, k-1]) for k ∈ collect(2:nt)]) for i ∈ collect(1:nn)]
-    elseif pv_type == "variability"
-        pv = [sqrt(sum((hk[i, k] - hk[i, k-1])^2 for k ∈ collect(2:nt))) for i ∈ collect(1:nn)]
-    elseif pv_type == "range"
-        pv = [maximum(hk[i, :]) - minimum(hk[i, :]) for i ∈ collect(1:nn)]
-    end
-
-    pv_cdf = sort(vec(pv))
-    x = collect(1:nn)./(nn)
-
-    # plotting code
-    plot_cdf = plot()
-    plot_cdf = plot!(pv_cdf, x, seriestype=:line, c=:red3, linewidth=2, linestyle=:solid, label="")
-    plot_cdf = plot!(xlabel="Nodal pressure variation [m]", ylabel="Cumulative probability", yticks=(0:0.2:1), xtickfontsize=14, ytickfontsize=14, xguidefontsize=16, yguidefontsize=16, legendfont=14, legend=:none, fontfamily="Computer Modern", size=(550, 400))
-    if pv_type == "variation"
-        plot_cdf = plot!(xlabel="Maximum pressure variation [m]")
-    elseif pv_type == "variability"
-        plot_cdf = plot!(xlabel="Pressure variability [m]")
-    elseif pv_type == "range"
-        plot_cdf = plot!(xlabel="Pressure range [m]")
-    end
-    # size=(400, 300)
-end

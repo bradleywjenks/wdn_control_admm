@@ -37,8 +37,8 @@ end
     n_v = 3
     n_f = 4
 
-    pv_type = "variability" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
-    δmax = 20
+    pv_type = "range" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
+    δmax = 10
 
 end
 
@@ -74,7 +74,7 @@ begin
     xk_0 = SharedArray(vcat(data["q_init"], data["h_init"], zeros(np, nt), zeros(nn, nt)))
     zk = SharedArray(data["h_init"])
     λk = SharedArray(zeros(data["nn"], data["nt"]))
-    @everywhere γk = 0.1 # regularisation term
+    @everywhere γk = 0.01 # regularisation term
     @everywhere γ0 = 0 # regularisation term for first admm iteration
     @everywhere scaled = true # scaled = false
 
