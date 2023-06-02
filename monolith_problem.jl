@@ -23,7 +23,7 @@ begin
 
     pv_type = "range" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
     pv_active = true
-    δmax = 20
+    δmax = 10
     δviol = 1.2 # allowed constraint violation on the basis of ADMM results: 1.2 m for pressure range; 1.0 m for pressure variability
 
     obj_type = "azp-scc"
@@ -81,9 +81,9 @@ cpu_time = @elapsed begin
     set_optimizer_attribute(model, "max_iter", 3000)
     set_optimizer_attribute(model, "warm_start_init_point", "yes")
     set_optimizer_attribute(model, "linear_solver", "ma57")
-    # set_optimizer_attribute(model, "ma57_pivtol", 1e-4)
-    set_optimizer_attribute(model, "ma57_pre_alloc", 10.0)
-    set_optimizer_attribute(model, "ma57_automatic_scaling", "yes")
+    # set_optimizer_attribute(model, "ma57_pivtol", 1e-8)
+    # set_optimizer_attribute(model, "ma57_pre_alloc", 10.0)
+    # set_optimizer_attribute(model, "ma57_automatic_scaling", "yes")
     set_optimizer_attribute(model, "mu_strategy", "adaptive")
     set_optimizer_attribute(model, "mu_oracle", "quality-function")
     set_optimizer_attribute(model, "fixed_variable_treatment", "make_parameter")

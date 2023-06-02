@@ -10,10 +10,10 @@ begin
     # net_name = "L_town"
     # net_name = "modena"
 
-    bv_open = false # for bwfl network only
+    bv_open = true # for bwfl network only
 
-    # scc_time = collect(38:42) # bwfl (peak) and L_town
-    scc_time = collect(7:9) # Modena
+    scc_time = collect(38:42) # bwfl (peak) and L_town
+    # scc_time = collect(7:9) # Modena
 
     n_v = 3
     n_f = 4
