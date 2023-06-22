@@ -22,7 +22,7 @@ begin
     n_v = 3
     n_f = 4
 
-    pv_type = "variability" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
+    pv_type = "range" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
     δmax = 20
     
 end

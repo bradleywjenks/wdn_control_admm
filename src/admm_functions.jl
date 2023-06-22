@@ -182,7 +182,7 @@ function  auxiliary_update(xk, zk, λk, data, γ, pv_type; δmax=10, scaled=fals
         # set_optimizer_attribute(model, "fixed_variable_treatment", "make_parameter")
         # set_optimizer_attribute(model, "print_level", 0)
         model = Model(Gurobi.Optimizer)
-        set_silent(model)
+        # set_silent(model)
         @variable(model, z[i=1:nn, k=1:nt])
         @constraint(model, [i=1:nn, k=1:nt; k!=nt], z[i, k+1] .- z[i, k] .≤ δmax)
         @constraint(model, [i=1:nn, k=1:nt; k!=nt], -δmax .≤ z[i, k+1] .- z[i, k])
