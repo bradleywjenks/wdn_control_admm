@@ -1,5 +1,5 @@
 # wdn_control_admm
-This repository contains code implementation for the manuscript entitled "Distributed ADMM for dynamic control of water networks with time-linking constraints." The manuscript has been submitted to IEEE Journal, a preprint of which is available here: 'insert arXiv link'
+This repository contains code implementation for the manuscript entitled "A two-stage distributed algorithm for dynamic control of water networks with convergence gaurantees." The manuscript has been submitted to Optimization and Engineering, a preprint of which is available here: 'insert arXiv link'
 
 Instantiate the `Project.toml` to replicate this research environment. The main script is `admm_distributed.jl`.
 

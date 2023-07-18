@@ -1,4 +1,4 @@
-### admm functions for adaptive control problem
+### admm functions for dynamic control problem
 using LinearAlgebra
 using SparseArrays
 using JuMP

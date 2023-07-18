@@ -10,6 +10,7 @@ Manifest.toml
 
 
 # ignore uploading below files
+admm_vanilla_threaded.jl
 admm_distributed_ECC23.jl
 ECC23_plotting.jl
 network_plotting.jl

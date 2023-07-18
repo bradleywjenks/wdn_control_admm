@@ -22,9 +22,9 @@ begin
     n_f = 4
 
     pv_type = "range" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
-    pv_active = true
+    pv_active = false
     δmax = 10
-    δviol = 1.2 # allowed constraint violation on the basis of ADMM results: 1.2 m for pressure range; 1.0 m for pressure variability
+    δviol = 0.43 # allowed constraint violation on the basis of ADMM results
 
     obj_type = "azp-scc"
 
@@ -39,7 +39,7 @@ begin
 end
 
 
-### monolithic problem ### 
+### centralised problem ### 
 cpu_time = @elapsed begin
 
      # unload data
@@ -89,7 +89,7 @@ cpu_time = @elapsed begin
     set_optimizer_attribute(model, "fixed_variable_treatment", "make_parameter")
     # set_optimizer_attribute(model, "tol", 1e-6)
     # set_optimizer_attribute(model, "constr_viol_tol", 1e-9)
-    # set_optimizer_attribute(model, "constr_viol_tol", 2e-1)
+    # set_optimizer_attribute(model, "constr_viol_tol", 1e-2)
     # set_optimizer_attribute(model, "fast_step_computation", "yes")
     # set_optimizer_attribute(model, "hessian_approximation", "exact")
     # set_optimizer_attribute(model, "hessian_approximation", "limited-memory")
@@ -227,13 +227,16 @@ end
 ### save data ###
 
 begin
-    # @save "data/monolith_results/"*net_name*".jld2" x_sol obj_sol cpu_time
-    @save "data/monolith_results/"*net_name*pv_type*"_delta_"*string(δmax)*".jld2" x_sol obj_sol cpu_time
+    @save "data/centralised_results/"*net_name*"_"*pv_type*"_"*string(δmax)*".jld2" x_sol obj_sol cpu_time
+end
+
+begin
+    @save "data/centralised_results/"*net_name*"_"*pv_type*"_inf.jld2" x_sol obj_sol cpu_time
 end
 
 ### load data ###
 begin
-    @load "data/monolith_results/"*net_name*pv_type*"_delta_"*string(δmax)*".jld2" x_sol obj_sol cpu_time
+    @load "data/centralised_results/"*net_name*"_"*pv_type*"_"*string(δmax)*".jld2" x_sol obj_sol cpu_time
 end
 
 
@@ -246,21 +249,27 @@ begin
     A = 1 ./ ((π/4).*data["D"].^2)
     f_azp = zeros(nt)
     f_scc = zeros(nt)
+    f_val = zeros(nt)
     for k ∈ 1:nt
         f_azp[k] = sum(data["azp_weights"][i]*(hk[i, k] - data["elev"][i]) for i ∈ 1:nn)
         f_scc[k] = sum(data["scc_weights"][j]*((1+exp(-ρ*((qk[j, k]/1000*A[j]) - umin)))^-1 + (1+exp(-ρ*(-(qk[j, k]/1000*A[j]) - umin)))^-1) for j ∈ 1:np)
+        if k ∈ scc_time
+            f_val[k] = f_scc[k]*-1
+        else
+            f_val[k] = f_azp[k]
+        end
     end
 
     plot_azp = plot()
     plot_azp = plot!(collect(1:nt), f_azp, c=:red3, seriestype=:line, linewidth=2, linestyle=:solid, label="")
     plot_azp = vspan!([scc_time[1], scc_time[end]], c=:black, alpha = 0.1, label = "")
-    # plot_azp = plot!(xlabel="", ylabel="AZP [m]",  xlims=(0, 24), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, legendborder=:false, legend=:best, bottom_margin=2*Plots.mm, size=(600, 550))
-    plot_azp = plot!(xlabel="", ylabel="AZP [m]",  xlims=(0, 96), xticks=(0:24:96), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=16, legendfont=14, legendborder=:false, legend=:none, bottom_margin=2*Plots.mm, fontfamily="Computer Modern", size=(600, 600))
+    plot_azp = plot!(xlabel="", ylabel="AZP [m]",  xlims=(0, 24), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, legendborder=:false, legend=:best, bottom_margin=2*Plots.mm, size=(600, 550))
+    # plot_azp = plot!(xlabel="", ylabel="AZP [m]",  xlims=(0, 96), xticks=(0:24:96), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=16, legendfont=14, legendborder=:false, legend=:none, bottom_margin=2*Plots.mm, fontfamily="Computer Modern", size=(600, 600))
     plot_scc = plot()
     plot_scc = plot!(collect(1:nt), f_scc, c=:red3, seriestype=:line, linewidth=2, linestyle=:solid, label="")
     plot_scc = vspan!([scc_time[1], scc_time[end]], c=:black, alpha = 0.1, label = "")
-    # plot_scc = plot!(xlabel="Time step", ylabel=L"SCC $[\%]$", xlims=(0, 24), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, legend=:none, size=(600, 550))
-    plot_scc = plot!(xlabel="Time step", ylabel="SCC [%]", xlims=(0, 96), xticks=(0:24:96), xtickfontsize=14, ytickfontsize=14, xguidefontsize=16, yguidefontsize=16, legendfont=14, legend=:none, fontfamily="Computer Modern", size=(600, 600))
+    plot_scc = plot!(xlabel="Time step", ylabel=L"SCC $[\%]$", xlims=(0, 24), xtickfontsize=14, ytickfontsize=14, xguidefontsize=14, yguidefontsize=14, legendfont=12, legend=:none, size=(600, 550))
+    # plot_scc = plot!(xlabel="Time step", ylabel="SCC [%]", xlims=(0, 96), xticks=(0:24:96), xtickfontsize=14, ytickfontsize=14, xguidefontsize=16, yguidefontsize=16, legendfont=14, legend=:none, fontfamily="Computer Modern", size=(600, 600))
     plot(plot_azp, plot_scc, layout=(2, 1))
 
     # ylims=(30, 55)
@@ -269,3 +278,13 @@ begin
     # size=(425, 500)
 end
 
+
+r = maximum(hk, dims=2) - minimum(hk, dims=2)
+
+maximum(r)
+
+histogram(r, bins=50)
+
+sum(f_val)
+
+f_val
