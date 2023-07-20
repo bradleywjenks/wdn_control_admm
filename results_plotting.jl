@@ -62,7 +62,7 @@ begin
     # np = 797
     # nn = 688
     # δ = [30, 20, 10]
-    # γ_hat = 0.1
+    # γ_hat = 0.01
 
     net_name = "bwfl_2022_05_hw"
     nt = 96
@@ -72,7 +72,7 @@ begin
     γ_hat = 0.01
 
     scc_time = collect(38:42) 
-    # scc_time = collect(7:9)
+    # scc_time = collect(7:8)
     kmax = 1000
 end
 
@@ -142,23 +142,23 @@ begin
             # c = colors[2]
             c = colors[3]
 
-            # ymin_obj = 180
-            # ymax_obj = 340
-            # ytick_obj = "{180, 220, ..., 340}"
-            # ymax_iter = 600
-            # ytick_iter = "{0, 100, ..., 600}"
+            ymin_obj = 280
+            ymax_obj = 440
+            ytick_obj = "{280, 320, ..., 440}"
+            ymax_iter = 500
+            ytick_iter = "{0, 125, ..., 500}"
 
             # ymin_obj = 2850
             # ymax_obj = 3050
             # ytick_obj = "{2850, 2900, ..., 3050}"
-            # ymax_iter = 320
-            # ytick_iter = "{0, 60, ..., 320}"
+            # ymax_iter = 350
+            # ytick_iter = "{0, 70, ..., 350}"
 
-            ymin_obj = 3220
-            ymax_obj = 3320
-            ytick_obj = "{3220, 3240, ..., 3320}"
-            ymax_iter = 120
-            ytick_iter = "{0, 20, ..., 120}"
+            # ymin_obj = 3220
+            # ymax_obj = 3320
+            # ytick_obj = "{3220, 3240, ..., 3320}"
+            # ymax_iter = 120
+            # ytick_iter = "{0, 20, ..., 120}"
 
     @pgf obj_plot = Axis(
         {
@@ -425,8 +425,8 @@ begin
 end
 
 begin
-    x = collect(0:0.25:24)
-    # x = collect(0:1:24)
+    # x = collect(0:0.25:24)
+    x = collect(0:1:24)
 
     # c = colors[1]
     # c = colors[2]
@@ -440,15 +440,15 @@ begin
             xmin = 0,
             xmax = 24,
             xtick = "{0, 4, ..., 24}",
-            # ymin = 10,
-            # ymax = 40,
-            # ytick = "{10, 15, ..., 40}",
+            ymin = 15,
+            ymax = 35,
+            ytick = "{15, 20, ..., 35}",
             # ymin = 30,
             # ymax = 60,
-            # ytick = "{30, 36, ..., 60}",
-            ymin = 32,
-            ymax = 48,
-            ytick = "{32, 36, ..., 48}",
+            # ytick = "{30, 40, ..., 60}",
+            # ymin = 32,
+            # ymax = 48,
+            # ytick = "{32, 36, ..., 48}",
             tick_style = "black",
             legend_pos = "north east",
             scale_only_axis = true,
@@ -528,16 +528,16 @@ begin
             xmin = 0,
             xmax = 24,
             xtick = "{0, 4, ..., 24}",
-            # ymin = 15,
-            # ymax = 85,
-            # ytick = "{10, 25, ..., 85}",
-            # ymin = 20,
+            # ymin = 10,
             # ymax = 90,
-            # ytick = "{20, 30, ..., 90}",
-            ymin = 5,
-            ymax = 45,
-            ytick = "{5, 10, ..., 45}",
-            tick_style = "black",
+            # ytick = "{10, 30, ..., 90}",
+            ymin = 20,
+            ymax = 100,
+            ytick = "{20, 40, ..., 100}",
+            # ymin = 5,
+            # ymax = 45,
+            # ytick = "{5, 15, ..., 45}",
+            # tick_style = "black",
             # legend_pos = "north east",
             scale_only_axis = true,
             width = "10cm",
@@ -614,9 +614,9 @@ begin
         },
     azp_plot, scc_plot)
 
-    pgfsave("plots/"*net_name*"_"*pv_type*"_azp_scc.pdf", azp_scc_plot)
-    pgfsave("plots/"*net_name*"_"*pv_type*"_azp_scc.svg", azp_scc_plot)
-    pgfsave("plots/"*net_name*"_"*pv_type*"_azp_scc.tex", azp_scc_plot; include_preamble=false)
+    pgfsave("plots/"*net_name*"_range_azp_scc.pdf", azp_scc_plot)
+    pgfsave("plots/"*net_name*"_range_azp_scc.svg", azp_scc_plot)
+    pgfsave("plots/"*net_name*"_range_azp_scc.tex", azp_scc_plot; include_preamble=false)
     azp_scc_plot
 end
 
@@ -626,12 +626,12 @@ end
 begin
 
     # δ_idx = 1
-    δ_idx = 2
-    # δ_idx = 3
+    # δ_idx = 2
+    δ_idx = 3
 
 
-    # c = blues[4:end]
-    c = greens[4:end]
+    c = blues[4:end]
+    # c = greens[4:end]
     # c = reds[4:end]
     residuals[:, 1, :] .= nothing
     p_residual = residuals[:, :, δ_idx]; p_residual = map(x-> x === nothing ? Inf : x, p_residual)
@@ -652,7 +652,7 @@ begin
             num_iter = length(filter(isfinite, p_residual[i, :])) 
         end
     end
-    num_iter = Int(ceil(num_iter/10)*10)
+    num_iter = Int(ceil(num_iter/50)*50)
 
     # y-axis maximum
     ymax_p = Int(ceil(maximum(filter(isfinite, vec(p_residual)))*1.1))
@@ -673,11 +673,13 @@ begin
             ylabel = L"$\sqrt{n_n n_t} \times \|r\|_2$",
             xlabel = "Iteration",
             xmin = 0,
+            # xmax = 40,
             xmax = num_iter,
-            xtick = "{0, 10, ..., $num_iter}",
+            xtick = "{0, 25, ..., $num_iter}",
+            # xtick = "{0, 10, ..., 40}",
             ymode = "log",
-            ymax = ymax_p,
-            # ymin = 0.001,
+            ymax = 10^1,
+            ymin = 0.005,
             # ytick = y_tick_p,
             tick_style = "black",
             # scaled_y_ticks = scaled_y_ticks_p,
@@ -704,6 +706,15 @@ begin
         #     Coordinate(num_iter*0.925, ymax_p*0.8),
         #     "{$δ_name};"
         # ], 
+        HLine(
+            { 
+                style = "dotted, thick", 
+                color = "black", 
+                # color = colors[9],
+                }, 
+                10^-2
+            ),
+            # LegendEntry(L"$\epsilon$"),
     )
     @pgf for i ∈ collect(1:size(p_residual, 1))
         γ_idx = Int(log10(γ_range[i]))
@@ -726,9 +737,9 @@ begin
         
     end
 
-    pgfsave("plots/"*net_name*"_"*pv_type*"_"*string(δ[δ_idx])*"_residuals.pdf", p_residual_plot)
-    pgfsave("plots/"*net_name*"_"*pv_type*"_"*string(δ[δ_idx])*"_residuals.svg", p_residual_plot)
-    pgfsave("plots/"*net_name*"_"*pv_type*"_"*string(δ[δ_idx])*"_residuals.tex", p_residual_plot; include_preamble=false)
+    pgfsave("plots/"*net_name*"_range_"*string(δ[δ_idx])*"_residuals.pdf", p_residual_plot)
+    pgfsave("plots/"*net_name*"_range_"*string(δ[δ_idx])*"_residuals.svg", p_residual_plot)
+    pgfsave("plots/"*net_name*"_range_"*string(δ[δ_idx])*"_residuals.tex", p_residual_plot; include_preamble=false)
     p_residual_plot
 
 
