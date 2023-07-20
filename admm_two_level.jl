@@ -35,15 +35,15 @@ end
 
 ### input problem parameters ###
 @everywhere begin
-    # net_name = "bwfl_2022_05_hw"
-    net_name = "L_town"
+    net_name = "bwfl_2022_05_hw"
+    # net_name = "L_town"
     # net_name = "modena"
 
     n_v = 3
     n_f = 4
 
     pv_type = "range" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
-    δmax = 10
+    δmax = 100
 
 end
 
@@ -81,7 +81,7 @@ begin
 
     # initialise outer ALM level variables
     λ_n = SharedArray(zeros(data["nn"], data["nt"]))
-    @everywhere β_n = 1
+    @everywhere β_n = 0.1
     β_0 = β_n
 
     # initialise inner ADMM level variables
@@ -265,8 +265,6 @@ histogram(r_k, bins=50)
 histogram(r_0, bins=50)
 
 sum(f_val)
-
-f_val
 
 
 ### save data ###
