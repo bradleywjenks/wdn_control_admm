@@ -10,7 +10,6 @@ using LaTeXStrings
 using Statistics
 using Plots
 using LinearAlgebra
-using OpWater
 
 # OPENBLAS_NUM_THREADS = 1
 addprocs(7)
@@ -34,8 +33,8 @@ end
 
 ### input problem parameters ###
 @everywhere begin
-    # net_name = "bwfl_2022_05_hw"
-    net_name = "L_town"
+    net_name = "bwfl_2022_05_hw"
+    # net_name = "L_town"
     # net_name = "modena"
 
     n_v = 3
@@ -78,13 +77,13 @@ begin
     xk_0 = SharedArray(vcat(data["q_init"], data["h_init"], zeros(np, nt), zeros(nn, nt)))
     zk = SharedArray(data["h_init"])
     λk = SharedArray(zeros(data["nn"], data["nt"]))
-    @everywhere γk = 0.001 # regularisation term
+    @everywhere γk = 1 # regularisation term
     @everywhere γ0 = 0 # regularisation term for first admm iteration
     @everywhere scaled = true # scaled = false
 
     # ADMM parameters
     kmax = 1000
-    ϵ_rel = 1e-3
+    ϵ_rel = 5e-3
     ϵ_abs = 1e-2
     obj_hist = SharedArray(zeros(kmax, nt))
     xk = SharedArray(zeros(np+nn+np+nn, nt))
@@ -209,6 +208,3 @@ end
 begin
     @load "data/admm_results/"*net_name*"_"*pv_type*"_delta_"*string(δmax)*"_gamma_"*string(γk)*"_distributed.jld2"  nt np nn xk xk_0 objk p_residual d_residual cpu_time f_azp f_azp_pv f_scc f_scc_pv f_val 
 end
-
-
-test = load("data/admm_results/"*net_name*"_"*pv_type*"_delta_"*string(δmax)*"_gamma_"*string(γk)*"_distributed.jld2")
