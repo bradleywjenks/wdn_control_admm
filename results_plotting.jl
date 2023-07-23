@@ -50,12 +50,12 @@ end
 ### problem parameters ###
 begin
 
-    # net_name = "modena"
-    # nt = 24
-    # np = 317
-    # nn = 268
-    # δ = [20, 15, 10]
-    # γ_hat = 0.01
+    net_name = "modena"
+    nt = 24
+    np = 317
+    nn = 268
+    δ = [20, 15, 10]
+    γ_hat = 0.01
 
     # net_name = "L_town"
     # nt = 96
@@ -64,15 +64,15 @@ begin
     # δ = [30, 20, 10]
     # γ_hat = 0.01
 
-    net_name = "bwfl_2022_05_hw"
-    nt = 96
-    np = 2816
-    nn = 2745
-    δ = [20, 15, 10]
-    γ_hat = 0.01
+    # net_name = "bwfl_2022_05_hw"
+    # nt = 96
+    # np = 2816
+    # nn = 2745
+    # δ = [20, 15, 10]
+    # γ_hat = 0.01
 
-    scc_time = collect(38:42) 
-    # scc_time = collect(7:8)
+    # scc_time = collect(38:42) 
+    scc_time = collect(7:8)
     kmax = 1000
 end
 

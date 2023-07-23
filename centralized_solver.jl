@@ -22,9 +22,9 @@ begin
     n_f = 4
 
     pv_type = "range" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
-    pv_active = false
-    δmax = 10
-    δviol = 0.43 # allowed constraint violation on the basis of ADMM results
+    pv_active = true
+    δmax = 20
+    δviol = 1.24 # allowed constraint violation on the basis of ADMM results
 
     obj_type = "azp-scc"
 
@@ -89,7 +89,7 @@ cpu_time = @elapsed begin
     set_optimizer_attribute(model, "fixed_variable_treatment", "make_parameter")
     # set_optimizer_attribute(model, "tol", 1e-6)
     # set_optimizer_attribute(model, "constr_viol_tol", 1e-9)
-    # set_optimizer_attribute(model, "constr_viol_tol", 1e-2)
+    set_optimizer_attribute(model, "constr_viol_tol", 1e-2)
     # set_optimizer_attribute(model, "fast_step_computation", "yes")
     # set_optimizer_attribute(model, "hessian_approximation", "exact")
     # set_optimizer_attribute(model, "hessian_approximation", "limited-memory")
@@ -230,14 +230,12 @@ begin
     @save "data/centralised_results/"*net_name*"_"*pv_type*"_"*string(δmax)*".jld2" x_sol obj_sol cpu_time
 end
 
-begin
-    @save "data/centralised_results/"*net_name*"_"*pv_type*"_inf.jld2" x_sol obj_sol cpu_time
-end
 
 ### load data ###
 begin
-    @load "data/centralised_results/"*net_name*"_"*pv_type*"_"*string(δmax)*".jld2" x_sol obj_sol cpu_time
+    @load "data/centralised_results/"*net_name*"_"*pv_type*"_inf.jld2" x_sol obj_sol cpu_time
 end
+
 
 
 ### plotting code ###

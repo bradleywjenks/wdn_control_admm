@@ -59,7 +59,7 @@ function primal_update(xk, zk, λk, data, γ, t, scc_time; ρ=50, umin=0.2, δma
     set_optimizer_attribute(model, "fixed_variable_treatment", "make_parameter")
     # set_optimizer_attribute(model, "tol", 1e-6)
     # set_optimizer_attribute(model, "constr_viol_tol", 1e-9)
-    set_optimizer_attribute(model, "fast_step_computation", "yes")
+    # set_optimizer_attribute(model, "fast_step_computation", "yes")
     set_optimizer_attribute(model, "print_level", 0)
     if resto
         set_optimizer_attribute(model, "start_with_resto", "yes")

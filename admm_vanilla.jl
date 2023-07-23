@@ -33,9 +33,9 @@ end
 
 ### input problem parameters ###
 @everywhere begin
-    net_name = "bwfl_2022_05_hw"
+    # net_name = "bwfl_2022_05_hw"
     # net_name = "L_town"
-    # net_name = "modena"
+    net_name = "modena"
 
     n_v = 3
     n_f = 4
@@ -77,14 +77,14 @@ begin
     xk_0 = SharedArray(vcat(data["q_init"], data["h_init"], zeros(np, nt), zeros(nn, nt)))
     zk = SharedArray(data["h_init"])
     λk = SharedArray(zeros(data["nn"], data["nt"]))
-    @everywhere γk = 1 # regularisation term
+    @everywhere γk = 0.1 # regularisation term
     @everywhere γ0 = 0 # regularisation term for first admm iteration
     @everywhere scaled = true # scaled = false
 
     # ADMM parameters
     kmax = 1000
-    ϵ_rel = 5e-3
-    ϵ_abs = 1e-2
+    ϵ_p = 1e-2 * sqrt(length(zk))
+    ϵ_d = 5e-3 * sqrt(length(λk))
     obj_hist = SharedArray(zeros(kmax, nt))
     xk = SharedArray(zeros(np+nn+np+nn, nt))
     z_hist = Array{Union{Nothing, Float64}}(nothing, nn*nt, kmax+1)
@@ -142,10 +142,6 @@ begin
             push!(d_residual, d_residual_k)
 
             ### ADMM status statement ###
-            # ϵ_p = sqrt(length(hk))*ϵ_abs 
-            # ϵ_d = sqrt(length(λk))*ϵ_abs
-            ϵ_p = sqrt(length(hk))*ϵ_abs + ϵ_rel*maximum([norm(hk), norm(zk)])
-            ϵ_d = sqrt(length(λk))*ϵ_abs + ϵ_rel*norm(λk)
             if p_residual[k] ≤ ϵ_p && d_residual[k] ≤ ϵ_d
                 iter_f = k
                 @info "ADMM successful at iteration $k of $kmax. Primal residual = $p_residual_k, Dual residual = $d_residual_k. Algorithm terminated."
@@ -199,12 +195,24 @@ begin
 end
 
 
+rk = maximum(hk, dims=2) - minimum(hk, dims=2)
+r0 = maximum(hk_0, dims=2) - minimum(hk_0, dims=2)
+
+max_viol = maximum(rk) - δmax
+
+histogram(rk, bins=50)
+histogram(r0, bins=50)
+
+sum(f_val)
+
+
+iter_f
 ### save data ###
 begin
-    @save "data/admm_results/"*net_name*"_"*pv_type*"_delta_"*string(δmax)*"_gamma_"*string(γk)*"_distributed.jld2" nt np nn xk xk_0 objk p_residual d_residual cpu_time f_azp f_azp_pv f_scc f_scc_pv f_val 
+    @save "data/admm_results/"*net_name*"_"*pv_type*"_delta_"*string(δmax)*"_gamma_"*string(γk)*"_distributed.jld2" nt np nn xk xk_0 objk p_residual d_residual cpu_time f_azp f_azp_pv f_scc f_scc_pv f_val iter_f max_viol
 end
 
 ### load data ###
 begin
-    @load "data/admm_results/"*net_name*"_"*pv_type*"_delta_"*string(δmax)*"_gamma_"*string(γk)*"_distributed.jld2"  nt np nn xk xk_0 objk p_residual d_residual cpu_time f_azp f_azp_pv f_scc f_scc_pv f_val 
+    @load "data/admm_results/"*net_name*"_"*pv_type*"_delta_"*string(δmax)*"_gamma_"*string(γk)*"_distributed.jld2"  nt np nn xk xk_0 objk p_residual d_residual cpu_time f_azp f_azp_pv f_scc f_scc_pv f_val iter_f max_viol
 end
