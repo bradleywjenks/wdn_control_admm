@@ -43,7 +43,7 @@ end
     n_f = 4
 
     pv_type = "range" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
-    δmax = 10
+    δmax = 100
 
 end
 
@@ -64,7 +64,7 @@ end
 # - dual variable λ for slack variable constraint z = 0
 # - β > 0 ALM penalty parameter
 # - dual variable y for concensus constraint Ah + Bh̄ + z = 0. where A = identity matrix and B = - identity matrix
-# - γ > 0 ADMM penalty parameter
+# - ρ > 0 ADMM penalty parameter
 # - convergence tolerance, ϵ
 
 
@@ -80,9 +80,9 @@ begin
     umin = data["umin"]
 
     # initialise outer ALM level variables
-    λ_n = SharedArray(zeros(data["nn"], data["nt"]))
-    @everywhere β_n = 0.01
-    β_0 = β_n
+    λ_m = SharedArray(zeros(data["nn"], data["nt"]))
+    @everywhere β_m = 0.01
+    β_0 = β_m
 
     # initialise inner ADMM level variables
     x_0 = SharedArray(vcat(data["q_init"], data["h_init"], zeros(np, nt), zeros(nn, nt)))
@@ -90,18 +90,19 @@ begin
     h̄_k = SharedArray(data["h_init"])
     z_k = SharedArray(zeros(data["nn"], data["nt"]))
     y_k = SharedArray(zeros(data["nn"], data["nt"]))
-    @everywhere ρ_k = 0
+    @everywhere ρ_m = 0
 
     # algorithm parameters
     max_iter = 1000 # inner layer iterations
-    n_iter = 1
+    m_iter = 1
     k_iter = 1
     λ_bound = 1e6
     dim_couple = nn * nt
-    ϵ_p = 1e-2
-    ϵ_d = 5e-3
-    @everywhere γ = 1.1
-    ω = 0.8
+    ϵ_1 = 1e-5
+    ϵ_2 = 1e-5
+    ϵ_3 = 1e-2
+    @everywhere γ = 1.25
+    ω = 0.75
     res_z_prev = 0
 
     # initialise data arrays
@@ -110,9 +111,9 @@ begin
     h̄_hist = Array{Union{Nothing, Float64}}(nothing, nn*nt, max_iter); h̄_hist[:, k_iter] = vec(h̄_k)
     z_hist = Array{Union{Nothing, Float64}}(nothing, nn*nt, max_iter); z_hist[:, k_iter] = vec(z_k)
     y_hist = Array{Union{Nothing, Float64}}(nothing, nn*nt, max_iter); y_hist[:, k_iter] = vec(y_k)
-    ρ_hist = Array{Union{Nothing, Float64}}(nothing, 1, max_iter); ρ_hist[:, k_iter] .= ρ_k
-    λ_hist = Array{Union{Nothing, Float64}}(nothing, nn*nt, max_iter); λ_hist[:, n_iter] = vec(λ_n)
-    β_hist = Array{Union{Nothing, Float64}}(nothing, 1, max_iter); β_hist[:, n_iter] .= β_n
+    ρ_hist = Array{Union{Nothing, Float64}}(nothing, 1, max_iter); ρ_hist[:, k_iter] .= ρ_m
+    λ_hist = Array{Union{Nothing, Float64}}(nothing, nn*nt, max_iter); λ_hist[:, m_iter] = vec(λ_m)
+    β_hist = Array{Union{Nothing, Float64}}(nothing, 1, max_iter); β_hist[:, m_iter] .= β_m
 
     residuals = Array{Union{Nothing, Float64}}(nothing, max_iter, 5); residuals[1, :] = zeros(1, 5) # residuals corresponding to equations (14a)--(14c) in Sun, K and Sun, X. (2023)
 
@@ -128,10 +129,10 @@ cpu_time = @elapsed begin
 
         # Step 1: update x block in parallel
         @sync @distributed for t ∈ collect(1:nt)
-            x_k[:, t], obj_hist[k_iter+1, t], status = x_update(x_0[:, t], h̄_k[:, t], z_k[:, t], y_k[:, t], λ_n[:, t], data, β_n, ρ_k, t, scc_time; ρ_scc=ρ_scc, umin=umin, δmax=δmax)
+            x_k[:, t], obj_hist[k_iter+1, t], status = x_update(x_0[:, t], h̄_k[:, t], z_k[:, t], y_k[:, t], λ_m[:, t], data, β_m, ρ_m, t, scc_time; ρ_scc=ρ_scc, umin=umin, δmax=δmax)
             if status != 0
                 resto = true
-                x_k[:, t], obj_hist[k_iter, t], status = x_update(x_0[:, t], h̄_k[:, t], z_k[:, t], y_k[:, t], λ_n[:, t], data, β_n, ρ_k, t, scc_time; ρ_scc=ρ_scc, umin=umin, δmax=δmax, resto=resto)
+                x_k[:, t], obj_hist[k_iter, t], status = x_update(x_0[:, t], h̄_k[:, t], z_k[:, t], y_k[:, t], λ_m[:, t], data, β_m, ρ_k, t, scc_time; ρ_scc=ρ_scc, umin=umin, δmax=δmax, resto=resto)
                 if status != 0
                     error("IPOPT did not converge at time step t = $t.")
                 end
@@ -140,25 +141,25 @@ cpu_time = @elapsed begin
 
         x_hist[:, k_iter+1] = vec(x_k) # save x data at current k iteration
         if k_iter == 1
-            @everywhere ρ_k = 2 * β_n
+            @everywhere ρ_m = 2 * β_m
         end
 
         # Step 2: update h̄ block (note that this couples time steps and most be solved centrally)
-        h̄_k = h̄_update(x_k, h̄_k, z_k, y_k, λ_n, data, β_n, ρ_k, pv_type; δmax=δmax)
+        h̄_k = h̄_update(x_k, h̄_k, z_k, y_k, λ_m, data, β_m, ρ_m, pv_type; δmax=δmax)
         h̄_hist[:, k_iter+1] = vec(h̄_k)
 
         # Step 3: update z block (note that this is an unconstrained optimization problem)
-        z_k = z_update(x_k, h̄_k, z_k, y_k, λ_n, data, β_n, ρ_k)
+        z_k = z_update(x_k, h̄_k, z_k, y_k, λ_m, data, β_m, ρ_m)
         z_hist[:, k_iter+1] = vec(z_k)
 
         # Step 4: update inner level dual variable y_k
         h_k = x_k[np+1:np+nn, :]
-        y_k = y_k .+ ρ_k .* (h_k .- h̄_k .+ z_k)
+        y_k = y_k .+ ρ_m .* (h_k .- h̄_k .+ z_k)
         y_hist[:, k_iter+1] = vec(y_k)
 
         # Step 5: compute residuals
-        res_inner_a = norm(h̄_hist[:, k_iter+1] .- h̄_hist[:, k_iter] .+ z_hist[:, k_iter] .- z_hist[:, k_iter+1]) ./ sqrt(dim_couple) # (14a)
-        res_inner_b = norm(z_hist[:, k_iter+1] .- z_hist[:, k_iter]) ./ sqrt(dim_couple) # (14b)
+        res_inner_a = norm(ρ_m .* (h̄_hist[:, k_iter+1] .- h̄_hist[:, k_iter] .+ z_hist[:, k_iter] .- z_hist[:, k_iter+1])) ./ sqrt(dim_couple) # (14a)
+        res_inner_b = norm(ρ_m .* (z_hist[:, k_iter+1] .- z_hist[:, k_iter])) ./ sqrt(dim_couple) # (14b)
         res_inner_c = norm(h_k .- h̄_k .+ z_k) ./ sqrt(dim_couple) # (14c)
         res_outer = norm(h_k .- h̄_k) ./ sqrt(dim_couple) # ||h_k - h̄_k|| 
         res_z = norm(z_k) # ||z_k|| 
@@ -167,33 +168,34 @@ cpu_time = @elapsed begin
 
         # Step 6: check stopping criteria
         # if (res_inner_a ≤ ϵ) && (res_inner_b ≤ ϵ) && (res_inner_c ≤ 2 * ϵ)
-        if (res_inner_c ≤ 1 ./ (2500 .* n_iter)) || ((res_inner_b ≤ ϵ_d) && k_iter > 1)
-            @info "ADMM successful at iteration $k_iter. Inner-level residual (a) = $res_inner_a. Inner-level residual (b) = $res_inner_b, Inner-level residual (c) = $res_inner_c. ALM iteration $n_iter finished."
+        if (res_inner_c ≤ 1 / (100 * m_iter)) || (((res_inner_b ≤ ϵ_2) || (res_inner_a ≤ ϵ_1)) && k_iter > 1)
+        # if (res_inner_c ≤ ϵ_3) || ((res_inner_b ≤ ϵ_2) && k_iter > 1)
+            @info "ADMM successful at iteration $k_iter. Inner-level residual (a) = $res_inner_a. Inner-level residual (b) = $res_inner_b, Inner-level residual (c) = $res_inner_c. ALM iteration $m_iter finished."
 
             # check overall algorithm stopping criterion
-            if res_outer ≤ ϵ_p
-                @info "Algorithm successfuly converged. Outer-level residual = $res_outer. ALM iteration = $n_iter."
+            if res_outer ≤ ϵ_3
+                @info "Algorithm successfuly converged. Outer-level residual = $res_outer. ALM iteration = $m_iter."
                 break
             else
-                @info "Algorithm unsuccessful at ALM iteration $n_iter. Outer-level residual = $res_outer. Moving to next iteration."
+                @info "Algorithm unsuccessful at ALM iteration $m_iter. Outer-level residual = $res_outer. Moving to next iteration."
             end
 
             # Step 7: update outer dual variable λ_k
-            λ_n = λ_update(λ_n, z_k, β_n, λ_bound)
-            λ_hist[:, n_iter+1] = vec(λ_n)
+            λ_m = λ_update(λ_m, z_k, β_m, λ_bound)
+            λ_hist[:, m_iter+1] = vec(λ_m)
 
             # Step 8: update penalty terms β_k and ρ_k
-            if (res_z > ω * res_z_prev) && (β_n * γ ≤ 1e6) && (n_iter > 1)
-                @everywhere β_n = β_n * γ
-                @everywhere ρ_k = 2 * β_n
+            if (res_z > ω * res_z_prev) && (β_m * γ ≤ 1e6) && (m_iter > 1)
+                @everywhere β_m = β_m * γ
+                @everywhere ρ_m = 2 * β_m
             end
 
-            n_iter += 1
+            m_iter += 1
             res_z_prev = res_z
 
             # Step 9: initialise ADMM level
             z_k = SharedArray(zeros(data["nn"], data["nt"]))
-            y_k = -1 .* λ_n
+            y_k = -1 .* λ_m
             x_0 = x_k
             h̄_k = h_k
 
@@ -214,8 +216,8 @@ end
 begin
     println("")
     println("Number of inner ADMM iterations: $k_iter")
-    println("Number of outer ALM  iterations: $n_iter")
-    println("ALM penalty parameter at termination: $β_n")
+    println("Number of outer ALM  iterations: $m_iter")
+    println("ALM penalty parameter at termination: $β_m")
     println("The two-level distributed algorithm finished in $cpu_time seconds.")
 end
 
@@ -269,10 +271,10 @@ sum(f_val)
 
 ### save data ###
 begin
-    @save "data/two_level_results/"*net_name*"_"*pv_type*"_"*string(δmax)*"_beta_"*string(β_0)*".jld2" nt np nn x_k x_0 obj_hist residuals k_iter n_iter cpu_time f_azp f_azp_pv f_scc f_scc_pv f_val max_viol
+    @save "data/two_level_results/"*net_name*"_"*pv_type*"_"*string(δmax)*"_beta_"*string(β_0)*".jld2" nt np nn x_k x_0 obj_hist residuals k_iter m_iter cpu_time f_azp f_azp_pv f_scc f_scc_pv f_val max_viol
 end
 
 ### load data ###
 begin
-    @load "data/two_level_results/"*net_name*"_"*pv_type*"_"*string(δmax)*"_beta_"*string(β_0)*".jld2" nt np nn x_k x_0 obj_hist residuals k_iter n_iter cpu_time f_azp f_azp_pv f_scc f_scc_pv f_val max_viol
+    @load "data/two_level_results/"*net_name*"_"*pv_type*"_"*string(δmax)*"_beta_"*string(β_0)*".jld2" nt np nn x_k x_0 obj_hist residuals k_iter m_iter cpu_time f_azp f_azp_pv f_scc f_scc_pv f_val max_viol
 end

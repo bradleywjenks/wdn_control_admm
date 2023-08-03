@@ -1,6 +1,6 @@
 """
 
-    PLEASE NOTE:
+    NOTE:
     - This script comprises miscellaneous PGFPlotsX code for plotting ADMM results
     - It is very messy and is not intended to be reproduced
     - Use at your own risk
@@ -55,7 +55,7 @@ begin
     np = 317
     nn = 268
     δ = [20, 15, 10]
-    γ_hat = 0.01
+    γ_hat = 0.1
 
     # net_name = "L_town"
     # nt = 96
@@ -138,15 +138,15 @@ end
 ### objective value plot ###
 begin
 
-            # c = colors[1]
+            c = colors[1]
             # c = colors[2]
-            c = colors[3]
+            # c = colors[3]
 
             ymin_obj = 280
             ymax_obj = 440
             ytick_obj = "{280, 320, ..., 440}"
-            ymax_iter = 500
-            ytick_iter = "{0, 125, ..., 500}"
+            ymax_iter = 800
+            ytick_iter = "{0, 200, ..., 800}"
 
             # ymin_obj = 2850
             # ymax_obj = 3050
@@ -168,8 +168,8 @@ begin
             label_style = "{font=\\Large}",
             tick_label_style = "{font=\\large}",
             legend_style = "{font=\\large}",
-            # scaled_y_ticks = "{base 10:-3}",
-            scaled_y_ticks = "{base 10:-2}",
+            scaled_y_ticks = "{base 10:-3}",
+            # scaled_y_ticks = "{base 10:-2}",
             ymin = ymin_obj,
             ymax = ymax_obj,
             ytick = ytick_obj,
