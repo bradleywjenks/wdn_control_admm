@@ -43,7 +43,7 @@ end
     n_f = 4
 
     pv_type = "range" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
-    δmax = 100
+    δmax = 10
 
 end
 

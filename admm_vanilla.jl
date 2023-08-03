@@ -41,7 +41,7 @@ end
     n_f = 4
 
     pv_type = "range" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
-    δmax = 10
+    δmax = 15
 
 end
 
@@ -78,12 +78,12 @@ begin
     x_k = SharedArray(zeros(np+nn+np+nn, nt))
     h̄_k   = SharedArray(data["h_init"])
     y_k = SharedArray(zeros(data["nn"], data["nt"]))
-    @everywhere γ_k = 0.1 # regularisation term
+    @everywhere γ_k = 0.001 # regularisation term
     @everywhere γ_0 = 0 # regularisation term for first admm iteration
     @everywhere scaled = false # scaled = true
 
     # ADMM parameters
-    kmax = 1000
+    kmax = 5000
     dim_couple = nn * nt
     ϵ_p = 1e-2
     ϵ_d = 1e-5
@@ -143,7 +143,8 @@ begin
             push!(d_residual, d_residual_k)
 
             ### ADMM status statement ###
-            if p_residual[k] ≤ ϵ_p || d_residual[k] ≤ ϵ_d
+            if p_residual[k] ≤ ϵ_p
+            # if p_residual[k] ≤ ϵ_p || d_residual[k] ≤ ϵ_d
                 iter_f = k
                 @info "ADMM successful at iteration $k of $kmax. Primal residual = $p_residual_k, Dual residual = $d_residual_k. Algorithm terminated."
                 break

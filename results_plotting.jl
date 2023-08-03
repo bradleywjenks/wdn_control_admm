@@ -1,7 +1,7 @@
 """
 
     NOTE:
-    - This script comprises miscellaneous PGFPlotsX code for plotting ADMM results
+    - This script comprises miscellaneous PGFPlotsX code for plotting results
     - It is very messy and is not intended to be reproduced
     - Use at your own risk
 
@@ -50,12 +50,12 @@ end
 ### problem parameters ###
 begin
 
-    net_name = "modena"
-    nt = 24
-    np = 317
-    nn = 268
-    δ = [20, 15, 10]
-    γ_hat = 0.1
+    # net_name = "modena"
+    # nt = 24
+    # np = 317
+    # nn = 268
+    # δ = [20, 15, 10]
+    # γ_hat = 0.1
 
     # net_name = "L_town"
     # nt = 96
@@ -64,15 +64,15 @@ begin
     # δ = [30, 20, 10]
     # γ_hat = 0.01
 
-    # net_name = "bwfl_2022_05_hw"
-    # nt = 96
-    # np = 2816
-    # nn = 2745
-    # δ = [20, 15, 10]
-    # γ_hat = 0.01
+    net_name = "bwfl_2022_05_hw"
+    nt = 96
+    np = 2816
+    nn = 2745
+    δ = [20, 15, 10]
+    γ_hat = 0.01
 
-    # scc_time = collect(38:42) 
-    scc_time = collect(7:8)
+    scc_time = collect(38:42) 
+    # scc_time = collect(7:8)
     kmax = 1000
 end
 
@@ -142,11 +142,11 @@ begin
             # c = colors[2]
             # c = colors[3]
 
-            ymin_obj = 280
-            ymax_obj = 440
-            ytick_obj = "{280, 320, ..., 440}"
-            ymax_iter = 800
-            ytick_iter = "{0, 200, ..., 800}"
+            # ymin_obj = 280
+            # ymax_obj = 440
+            # ytick_obj = "{280, 320, ..., 440}"
+            # ymax_iter = 800
+            # ytick_iter = "{0, 200, ..., 800}"
 
             # ymin_obj = 2850
             # ymax_obj = 3050
@@ -154,11 +154,11 @@ begin
             # ymax_iter = 350
             # ytick_iter = "{0, 70, ..., 350}"
 
-            # ymin_obj = 3220
-            # ymax_obj = 3320
-            # ytick_obj = "{3220, 3240, ..., 3320}"
-            # ymax_iter = 120
-            # ytick_iter = "{0, 20, ..., 120}"
+            ymin_obj = 3220
+            ymax_obj = 3320
+            ytick_obj = "{3220, 3240, ..., 3320}"
+            ymax_iter = 120
+            ytick_iter = "{0, 30, ..., 120}"
 
     @pgf obj_plot = Axis(
         {
@@ -743,6 +743,98 @@ begin
     p_residual_plot
 
 
+
+end
+
+
+
+
+
+### results plotting for standard ADMM experiments which do not converge ###
+
+# load admm results
+begin
+    results_20 = load("data/admm_results/modena_range_delta_20_gamma_0.001_distributed.jld2")
+    results_15 = load("data/admm_results/modena_range_delta_15_gamma_0.001_distributed.jld2")
+    results_10 = load("data/admm_results/modena_range_delta_10_gamma_0.001_distributed.jld2")
+
+    kmax = 1000
+    residuals = Array{Union{Any}}(nothing, kmax, 3)
+    residuals[:, 1] = results_20["p_residual"]
+    residuals[:, 2] = results_15["p_residual"]
+    residuals[:, 3] = results_10["p_residual"]
+
+    residuals[1, :] .= nothing
+    residuals = map(x-> x === nothing ? Inf : x, residuals)
+
+end
+
+# plotting code
+begin
+    c = greys
+
+    residual_plot = @pgf Axis(
+        {
+            ylabel = L"$\sqrt{n_n n_t} \cdot \|r\|$",
+            xlabel = "Iteration",
+            xmin = 0,
+            xmax = 1000,
+            xtick = "{0, 250, ..., 1000}",
+            ymode = "log",
+            ymax = 10^1,
+            ymin = 0.005,
+            tick_style = "black",
+            legend_pos = "north east",
+            label_style = "{font=\\Large}",
+            tick_label_style = "{font=\\large}",
+            # y_tick_label_style = "{/pgf/number format/fixed zerofill}",
+            # y_tick_label_style = "{/pgf/number format/fixed zerofill, /pgf/number format/precision=1, /pgf/number format/fixed}",
+            # y_tick_label_style = "{/pgf/number format/precision=1}",
+            legend_style = "{font=\\large}",
+            title_style = "{font=\\Large}",
+            title = L"$\rho=10^{-3}$"
+        },
+        PlotInc(
+        {
+            style = "solid, very thick",
+            mark = "none",
+            color = c[4],
+        },
+        Coordinates(collect(1:length(residuals[:, 1])), residuals[:, 1])
+        ), 
+        LegendEntry(L"$\delta_1$"),
+        PlotInc(
+            {
+                style = "solid, very thick",
+                mark = "none",
+                color = c[6],
+            },
+            Coordinates(collect(1:length(residuals[:, 2])), residuals[:, 2])
+            ), 
+        LegendEntry(L"$\delta_2$"),
+        PlotInc(
+            {
+                style = "solid, very thick",
+                mark = "none",
+                color = c[8],
+            },
+            Coordinates(collect(1:length(residuals[:, 3])), residuals[:, 3])
+            ), 
+            LegendEntry(L"$\delta_3$"),
+        HLine(
+            { 
+                style = "dotted, thick", 
+                color = "black", 
+                # color = colors[9],
+                }, 
+                10^-2
+            ),
+            # LegendEntry(L"$\epsilon$"),
+    )
+    pgfsave("plots/modena_admm_residuals.pdf", residual_plot)
+    pgfsave("plots/modena_admm_residuals.svg", residual_plot)
+    pgfsave("plots/modena_admm_residuals.tex", residual_plot; include_preamble=false)
+    residual_plot
 
 end
 
