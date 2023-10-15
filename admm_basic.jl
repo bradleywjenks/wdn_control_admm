@@ -41,7 +41,7 @@ end
     n_f = 4
 
     pv_type = "range" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
-    δmax = 15
+    δmax = 10
 
 end
 
@@ -78,12 +78,12 @@ begin
     x_k = SharedArray(zeros(np+nn+np+nn, nt))
     h̄_k   = SharedArray(data["h_init"])
     y_k = SharedArray(zeros(data["nn"], data["nt"]))
-    @everywhere γ_k = 0.001 # regularisation term
+    @everywhere γ_k = 0.1 # regularisation term
     @everywhere γ_0 = 0 # regularisation term for first admm iteration
     @everywhere scaled = false # scaled = true
 
     # ADMM parameters
-    kmax = 5000
+    kmax = 1000
     dim_couple = nn * nt
     ϵ_p = 1e-2
     ϵ_d = 1e-5
@@ -209,12 +209,15 @@ sum(f_val)
 
 
 iter_f
+
 ### save data ###
 begin
-    @save "data/admm_results/"*net_name*"_"*pv_type*"_delta_"*string(δmax)*"_gamma_"*string(γ_k)*"_distributed.jld2" nt np nn x_k x_0 objk p_residual d_residual cpu_time f_azp f_azp_pv f_scc f_scc_pv f_val iter_f max_viol
+    @save "data/admm_results/"*net_name*"_"*pv_type*"_"*string(δmax)*"_beta_"*string(γ_k)*".jld2" nt np nn x_k x_0 obj_hist p_residual cpu_time f_azp f_azp_pv f_scc f_scc_pv f_val iter_f max_viol
 end
 
 ### load data ###
 begin
-    @load "data/admm_results/"*net_name*"_"*pv_type*"_delta_"*string(δmax)*"_gamma_"*string(γ_k)*"_distributed.jld2"  nt np nn x_k x_0 objk p_residual d_residual cpu_time f_azp f_azp_pv f_scc f_scc_pv f_val iter_f max_viol
+    @load "data/admm_results/"*net_name*"_"*pv_type*"_"*string(δmax)*"_beta_"*string(γ_k)*".jld2" nt np nn x_k x_0 obj_hist p_residual cpu_time f_azp f_azp_pv f_scc f_scc_pv f_val iter_f max_viol
 end
+
+

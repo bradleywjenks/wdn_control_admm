@@ -97,14 +97,18 @@ begin
         # load and organise data
         for n ∈ collect(1:length(δ))
 
-            temp = load("data/two_level_results/"*net_name*"_range_"*string(δ[n])*"_beta_"*string(v)*".jld2")
+            # temp = load("data/two_level_results/"*net_name*"_range_"*string(δ[n])*"_beta_"*string(v)*".jld2")
+            temp = load("data/admm_results/"*net_name*"_range_"*string(δ[n])*"_beta_"*string(v)*".jld2")
             δ_vals[i, n+1, 1] = sum(temp["f_val"])
-            residuals[i, :, n] .= temp["residuals"][:, 4]
-            if temp["k_iter"] == 1000
+            # num_iter = temp["k_iter"]
+            num_iter = temp["iter_f"]
+            # residuals[i, :, n] .= temp["residuals"][:, 4]
+            residuals[i, 1:num_iter, n] .= temp["p_residual"]
+            if num_iter == 1000
                 δ_vals[i, n+1, 2] = Inf # no. iterations
                 δ_vals[i, n+1, 3] = Inf # cpu time
             else
-                δ_vals[i, n+1, 2] = temp["k_iter"]  # no. iterations
+                δ_vals[i, n+1, 2] = num_iter  # no. iterations
                 δ_vals[i, n+1, 3] = temp["cpu_time"] # cpu time
             end
 
@@ -125,7 +129,8 @@ begin
         end
 
         if v == γ_hat
-            temp = load("data/two_level_results/"*net_name*"_range_inf_beta_"*string(v)*".jld2")
+            # temp = load("data/two_level_results/"*net_name*"_range_inf_beta_"*string(v)*".jld2")
+            temp = load("data/admm_results/"*net_name*"_range_inf_beta_"*string(v)*".jld2")
             x_k[:, :, length(δ)+2] .= temp["x_k"]
             f_azp[length(δ)+2, :] .= temp["f_azp_pv"]
             f_scc[length(δ)+2, :] .= temp["f_scc_pv"]
@@ -328,11 +333,20 @@ begin
     pv_inf = [maximum(hk_inf[i, :]) - minimum(hk_inf[i, :]) for i ∈ collect(1:nn)]
 
     # pv_0_cdf = sort(vec(pv_0))
-    pv_1_cdf = sort(vec(pv_1))
-    pv_2_cdf = sort(vec(pv_2))
-    pv_3_cdf = sort(vec(pv_3))
-    pv_inf_cdf = sort(vec(pv_inf))
-    y = collect(1:nn)./(nn)
+    
+    percentiles = collect(0.01:0.01:1)
+    pv_1_cdf = []
+    pv_2_cdf = []
+    pv_3_cdf = []
+    pv_inf_cdf = []
+    for p in percentiles
+        push!(pv_1_cdf, quantile(pv_1, p))
+        push!(pv_2_cdf, quantile(pv_2, p))
+        push!(pv_3_cdf, quantile(pv_3, p))
+        push!(pv_inf_cdf, quantile(pv_inf, p))
+    end
+
+    y = percentiles
 
     # define xlabel and x bounds
     xlabel = "Pressure range [m]" 

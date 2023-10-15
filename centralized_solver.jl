@@ -14,16 +14,16 @@ include("src/admm_functions.jl")
 
 ### input problem parameters ###
 begin
-    net_name = "bwfl_2022_05_hw"
+    # net_name = "bwfl_2022_05_hw"
     # net_name = "L_town"
-    # net_name = "modena"
+    net_name = "modena"
 
     n_v = 3
     n_f = 4
 
     pv_type = "range" # pv_type = "variation"; pv_type = "variability"; pv_type = "range"; pv_type = "none"
     pv_active = true
-    δmax = 20
+    δmax = 10
     δviol = 1.24 # allowed constraint violation on the basis of ADMM results
 
     obj_type = "azp-scc"
@@ -42,38 +42,46 @@ end
 ### centralised problem ### 
 cpu_time = @elapsed begin
 
+    nt = data["nt"]
+    # time_steps = collect(1:3:nt)
+    time_steps = collect(1:nt)
+
      # unload data
     elev = data["elev"]
     nexp = data["nexp"]
-    d = data["d"]
-    h0 = data["h0"]
     A10 = data["A10"]
     A12 = data["A12"]
     np, nn = size(A12)
-    nt = data["nt"]
+    nt = length(time_steps)
+    d = data["d"][:, time_steps]
+    h0 = data["h0"][:, time_steps]
     r = data["r"]
     A = 1 ./ ((π/4).*data["D"].^2)
     azp_weights = data["azp_weights"]
     scc_weights = data["scc_weights"]
-    q_lo = data["Qmin"]
-    q_up = data["Qmax"]
-    h_lo = data["Hmin"]
-    h_up = data["Hmax"]
-    η_lo = data["ηmin"]
-    η_up = data["ηmax"]
-    α_up = data["αmax"]
+    q_lo = data["Qmin"][:, time_steps]
+    q_up = data["Qmax"][:, time_steps]
+    h_lo = data["Hmin"][:, time_steps]
+    h_up = data["Hmax"][:, time_steps]
+    η_lo = data["ηmin"][:, time_steps]
+    η_up = data["ηmax"][:, time_steps]
+    α_up = data["αmax"][:, time_steps]
     α_lo = zeros(nn, nt)
     y_loc = data["y_loc"]
     v_loc = data["v_loc"]
-    scc_time = data["scc_time"]
+    # scc_time = data["scc_time"]
+    scc_time = collect(7:8)
     ρ = data["ρ"]
     umin = data["umin"]
+
+    α_up[y_loc, scc_time] .= 25
 
     # define nonlinear SCC objective function
     ψ_ex(q, A, s; ρ=ρ, umin=umin) = 1/(1+exp(-ρ*((s*q*A) - umin)))
 
     # find junction and source nodes
     nodes_map = Dict(i=> findall(A12[i, :].!=0) for i in 1:np)
+    links_map = Dict(i=> findall(A12[:, i].!=0) for i in 1:nn)
     sources_map = Dict(i=> findall(A10[i, :].!=0) for i in 1:np)
 
     # set optimizaiton solver and its attributes
@@ -174,8 +182,10 @@ cpu_time = @elapsed begin
     end
 
     # unload and set starting values
-    q_init = data["q_init"]
-    h_init = data["h_init"]
+    # q_init = data["q_init"]
+    # h_init = data["h_init"]
+    q_init = data["q_init"][:, time_steps]
+    h_init = data["h_init"][:, time_steps]
     ψ⁺_init = zeros(np, nt)
     ψ⁻_init = zeros(np, nt)
     for k ∈ collect(1:nt)
