@@ -34,7 +34,6 @@ end
 ### input problem parameters ###
 @everywhere begin
     # net_name = "bwfl_2022_05_hw"
-    # net_name = "L_town"
     net_name = "modena"
 
     n_v = 3
@@ -58,7 +57,7 @@ end
 
 ### define ADMM parameters and starting values ###
 # - primal variable, x := [q, h, η, α]
-# - auxiliary (coupling) variable, z := h
+# - auxiliary (coupling) variable, h̄ := h
 # - dual variable λ
 # - penalty parameter γ
 # - convergence tolerance ϵ
@@ -199,16 +198,8 @@ end
 
 r_k = maximum(h_k, dims=2) - minimum(h_k, dims=2)
 r_0 = maximum(h_0, dims=2) - minimum(h_0, dims=2)
-
 max_viol = maximum(r_k) - δmax
 
-histogram(r_k, bins=50)
-histogram(r_0, bins=50)
-
-sum(f_val)
-
-
-iter_f
 
 ### save data ###
 begin

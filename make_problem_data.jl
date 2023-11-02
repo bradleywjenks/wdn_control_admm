@@ -7,7 +7,6 @@ include("src/admm_functions.jl")
 # set problem parameters
 begin
     # net_name = "bwfl_2022_05_hw"
-    # net_name = "L_town"
     net_name = "modena"
 
     bv_open = false # for bwfl network only

@@ -36,7 +36,6 @@ end
 ### input problem parameters ###
 @everywhere begin
     net_name = "bwfl_2022_05_hw"
-    # net_name = "L_town"
     # net_name = "modena"
 
     n_v = 3
@@ -167,9 +166,7 @@ cpu_time = @elapsed begin
         residuals[k_iter+1, :] = hcat(res_inner_a, res_inner_b, res_inner_c, res_outer, res_z)
 
         # Step 6: check stopping criteria
-        # if (res_inner_a ≤ ϵ) && (res_inner_b ≤ ϵ) && (res_inner_c ≤ 2 * ϵ)
         if (res_inner_c ≤ 1 / (100 * m_iter)) || (((res_inner_b ≤ ϵ_2) || (res_inner_a ≤ ϵ_1)) && k_iter > 1)
-        # if (res_inner_c ≤ ϵ_3) || ((res_inner_b ≤ ϵ_2) && k_iter > 1)
             @info "ADMM successful at iteration $k_iter. Inner-level residual (a) = $res_inner_a. Inner-level residual (b) = $res_inner_b, Inner-level residual (c) = $res_inner_c. ALM iteration $m_iter finished."
 
             # check overall algorithm stopping criterion
@@ -260,14 +257,7 @@ end
 
 r_k = maximum(h_k, dims=2) - minimum(h_k, dims=2)
 r_0 = maximum(h_0, dims=2) - minimum(h_0, dims=2)
-
 max_viol = maximum(r_k) - δmax
-
-histogram(r_k, bins=50)
-histogram(r_0, bins=50)
-
-sum(f_val)
-
 
 ### save data ###
 begin
