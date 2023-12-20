@@ -1,5 +1,5 @@
 # wdn_control_admm
-This repository contains code implementation for the manuscript entitled "Distributed nonconvex optimization for control of water networks with time-coupling constraints." A preprint of the manuscript is available here: 'insert arXiv link'.
+This repository contains code implementation for the manuscript entitled "Distributed nonconvex optimization for control of water networks with time-coupling constraints." A preprint of the manuscript is available here: '[arXiv link](https://arxiv.org/abs/2311.05180)'.
 
 Instantiate the `Project.toml` to replicate this research environment. The main scripts are `admm_two_level.jl` and `admm_standard.jl`.
 
