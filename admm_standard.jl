@@ -72,12 +72,17 @@ begin
     ρ = data["ρ"]
     umin = data["umin"]
 
+    # # load starting values (for WDSA_CCWI_2024 code)
+    # @load "data/WDSA_CCWI_2024/bwfl_2022_05_hw_feasible_starting.jld2" q_k h_k η_k α_k obj_k feasible
+    # x_0 = SharedArray(vcat(q_k, h_k, η_k, α_k))
+
     # initialise variables
+    x_0 = SharedArray(vcat(q_k, h_k, η_k, α_k))
     x_0 = SharedArray(vcat(data["q_init"], data["h_init"], zeros(np, nt), zeros(nn, nt)))
     x_k = SharedArray(zeros(np+nn+np+nn, nt))
     h̄_k   = SharedArray(data["h_init"])
     y_k = SharedArray(zeros(data["nn"], data["nt"]))
-    @everywhere γ_k = 0.1 # regularisation term
+    @everywhere γ_k = 0.01 # regularisation term
     @everywhere γ_0 = 0 # regularisation term for first admm iteration
     @everywhere scaled = false # scaled = true
 
